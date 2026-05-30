@@ -30,32 +30,21 @@ export default async function BlogPostPage({
 }) {
   const { slug } = await params
   const post = await getPost(slug)
-
   if (!post) notFound()
 
   return (
     <div className="min-h-screen pt-20">
       <article className="max-w-3xl mx-auto px-6 py-16">
-        {/* Back link */}
-        <Link
-          href="/blog"
-          className="inline-flex items-center gap-2 mono text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors mb-12"
-        >
-          <ArrowLeft size={13} /> all posts
+        <Link href="/blog"
+          className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors mb-10 font-medium">
+          <ArrowLeft size={13} /> All posts
         </Link>
 
-        {/* Post header */}
         <header className="mb-12">
-          {/* Tags */}
           {post.tags?.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-2 mb-5">
               {post.tags.map((tag: string) => (
-                <span
-                  key={tag}
-                  className="mono text-[10px] px-2.5 py-1 rounded-full border border-[var(--accent)] border-opacity-30 text-[var(--accent)] bg-[var(--accent)] bg-opacity-5"
-                >
-                  {tag}
-                </span>
+                <span key={tag} className="tag">{tag}</span>
               ))}
             </div>
           )}
@@ -64,14 +53,10 @@ export default async function BlogPostPage({
             {post.title}
           </h1>
 
-          <div className="flex items-center gap-6 text-xs text-[var(--muted)] mono">
+          <div className="flex items-center gap-5 text-xs text-[var(--muted)] mono">
             <span className="flex items-center gap-1.5">
               <Calendar size={11} />
-              {new Date(post.created_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {new Date(post.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
             </span>
             <span className="flex items-center gap-1.5">
               <Clock size={11} />
@@ -80,7 +65,7 @@ export default async function BlogPostPage({
           </div>
 
           {post.excerpt && (
-            <p className="mt-6 text-[var(--muted)] text-base leading-relaxed border-l-2 border-[var(--accent)] pl-4 italic">
+            <p className="mt-5 text-[var(--muted)] text-base leading-relaxed border-l-2 border-[var(--accent)] pl-4">
               {post.excerpt}
             </p>
           )}
@@ -88,24 +73,18 @@ export default async function BlogPostPage({
 
         <hr className="border-[var(--border)] mb-12" />
 
-        {/* Content */}
         <MarkdownRenderer content={post.content} />
 
-        {/* Footer */}
         <div className="mt-16 pt-8 border-t border-[var(--border)] flex items-center justify-between">
-          <Link
-            href="/blog"
-            className="flex items-center gap-2 mono text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
-          >
-            <ArrowLeft size={13} /> back to blog
+          <Link href="/blog"
+            className="flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--accent)] transition-colors font-medium">
+            <ArrowLeft size={13} /> Back to blog
           </Link>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full overflow-hidden border border-[var(--border)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/avatar.png" alt="Naveen Meel" className="w-full h-full object-cover" />
-            </div>
+            <img src="/avatar.png" alt="Naveen Meel"
+              className="w-9 h-9 rounded-full object-cover border border-[var(--border)]" />
             <div>
-              <p className="text-xs font-medium text-[var(--text)]">Naveen Meel</p>
+              <p className="text-xs font-semibold text-[var(--text)]">Naveen Meel</p>
               <p className="mono text-[10px] text-[var(--muted)]">Cloud & DevOps Engineer</p>
             </div>
           </div>

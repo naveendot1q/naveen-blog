@@ -2,21 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { ArrowDown, Cloud, GitBranch, Server, Shield } from 'lucide-react'
+import { ArrowDown } from 'lucide-react'
 
 const titles = [
-  'Network Engineer @ Airtel',
+  'NOC Network Engineer @ Airtel',
   'Cloud Infrastructure Builder',
   'DevOps Practitioner',
-  'AWS Architect',
+  'AWS Solutions Architect',
   'CI/CD Pipeline Designer',
-]
-
-const floatingIcons = [
-  { Icon: Cloud, style: 'top-1/4 left-8 opacity-10', delay: '0s', size: 28 },
-  { Icon: Server, style: 'top-1/3 right-12 opacity-10', delay: '1.5s', size: 22 },
-  { Icon: GitBranch, style: 'bottom-1/3 left-16 opacity-10', delay: '0.8s', size: 20 },
-  { Icon: Shield, style: 'bottom-1/4 right-8 opacity-10', delay: '2s', size: 24 },
 ]
 
 export default function Hero() {
@@ -27,117 +20,92 @@ export default function Hero() {
 
   useEffect(() => {
     const currentTitle = titles[titleIndex]
-
     if (!isDeleting && displayed === currentTitle) {
-      timeoutRef.current = setTimeout(() => setIsDeleting(true), 2000)
+      timeoutRef.current = setTimeout(() => setIsDeleting(true), 2200)
       return
     }
-
     if (isDeleting && displayed === '') {
       setIsDeleting(false)
       setTitleIndex((i) => (i + 1) % titles.length)
       return
     }
-
-    const speed = isDeleting ? 40 : 80
+    const speed = isDeleting ? 35 : 75
     timeoutRef.current = setTimeout(() => {
-      setDisplayed((d) =>
-        isDeleting
-          ? d.slice(0, -1)
-          : currentTitle.slice(0, d.length + 1)
-      )
+      setDisplayed((d) => isDeleting ? d.slice(0, -1) : currentTitle.slice(0, d.length + 1))
     }, speed)
-
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    }
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current) }
   }, [displayed, isDeleting, titleIndex])
 
   return (
-    <section className="relative min-h-screen grid-bg flex flex-col items-center justify-center overflow-hidden pt-20">
-      {/* Floating decorative icons */}
-      {floatingIcons.map(({ Icon, style, delay, size }, i) => (
-        <div
-          key={i}
-          className={`absolute text-[var(--accent)] pointer-events-none animate-float ${style}`}
-          style={{ animationDelay: delay }}
-        >
-          <Icon size={size} />
-        </div>
-      ))}
+    <section className="relative min-h-screen grid-bg flex flex-col items-center justify-center overflow-hidden pt-20 pb-12">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-[var(--accent)] opacity-[0.04] blur-[120px] pointer-events-none" />
 
-      {/* Glow blob */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-[var(--accent)] opacity-[0.03] blur-[100px] pointer-events-none" />
+      <div className="relative z-10 max-w-5xl mx-auto px-6 w-full">
+        <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">
+          {/* Photo */}
+          <div className="animate-fade-up delay-100 shrink-0">
+            <div className="relative">
+              <div className="absolute -inset-1.5 rounded-full bg-gradient-to-br from-[var(--accent)] via-[var(--accent)] to-transparent opacity-30 blur-md" />
+              <Image
+                src="/photo.jpg"
+                alt="Naveen Meel"
+                width={220}
+                height={220}
+                className="relative rounded-full object-cover object-top border-2 border-[var(--accent)] border-opacity-60 shadow-2xl"
+                style={{ width: 220, height: 220 }}
+                priority
+              />
+              <span className="absolute bottom-2 right-2 w-4 h-4 bg-[var(--green)] rounded-full border-2 border-[var(--bg)] animate-pulse-slow" />
+            </div>
+          </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-        {/* Avatar */}
-        <div className="animate-fade-up delay-100 flex justify-center mb-8">
-          <div className="relative">
-            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[var(--accent)] to-transparent opacity-40 blur-sm" />
-            <Image
-              src="/avatar.png"
-              alt="Naveen Meel"
-              width={120}
-              height={120}
-              className="relative rounded-full border-2 border-[var(--accent)] object-cover"
-              priority
-            />
-            {/* Online dot */}
-            <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-[var(--green)] rounded-full border-2 border-[var(--bg)] animate-pulse-slow" />
+          {/* Text */}
+          <div className="text-center md:text-left">
+            <div className="animate-fade-up delay-100">
+              <span className="inline-block mono text-xs text-[var(--accent)] tracking-[0.25em] uppercase mb-4 border border-[var(--accent)] border-opacity-30 px-3 py-1 rounded-full bg-[var(--accent-subtle)]">
+                available for opportunities
+              </span>
+            </div>
+
+            <h1 className="animate-fade-up delay-200 text-5xl md:text-6xl font-bold text-[var(--text)] tracking-tight mb-4 leading-none">
+              Naveen Meel
+            </h1>
+
+            <div className="animate-fade-up delay-300 h-7 flex items-center justify-center md:justify-start mb-5">
+              <p className="mono text-sm text-[var(--muted)]">
+                {displayed}<span className="animate-blink text-[var(--accent)] ml-0.5">|</span>
+              </p>
+            </div>
+
+            <p className="animate-fade-up delay-400 text-[var(--muted)] text-base max-w-lg mx-auto md:mx-0 leading-relaxed mb-8">
+              Building reliable cloud infrastructure and automating workflows. 
+              Based in Gurugram, India.
+            </p>
+
+            <div className="animate-fade-up delay-500 flex flex-wrap items-center justify-center md:justify-start gap-3">
+              <a href="#contact"
+                className="px-6 py-2.5 bg-[var(--accent)] text-white font-semibold text-sm rounded-lg hover:bg-[var(--accent-hover)] transition-colors shadow-lg shadow-amber-500/20">
+                Get in touch
+              </a>
+              <a href="/blog"
+                className="px-6 py-2.5 border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] font-medium text-sm rounded-lg transition-all duration-200">
+                Read blog
+              </a>
+              <a href="/Naveen_Resume.pdf" download
+                className="px-6 py-2.5 border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] font-medium text-sm rounded-lg transition-all duration-200">
+                Download CV
+              </a>
+            </div>
           </div>
         </div>
 
-        {/* Name */}
-        <div className="animate-fade-up delay-200">
-          <p className="mono text-xs text-[var(--accent)] tracking-[0.3em] uppercase mb-3">
-            ~/hello-world
-          </p>
-          <h1 className="text-4xl md:text-6xl font-bold text-[var(--text)] tracking-tight mb-4">
-            Naveen Meel
-          </h1>
-        </div>
-
-        {/* Typewriter */}
-        <div className="animate-fade-up delay-300 h-8 flex items-center justify-center mb-6">
-          <p className="mono text-sm md:text-base text-[var(--muted)]">
-            <span className="text-[var(--accent)]">$ </span>
-            {displayed}
-            <span className="animate-blink text-[var(--accent)]">|</span>
-          </p>
-        </div>
-
-        {/* Brief tagline */}
-        <p className="animate-fade-up delay-400 text-[var(--muted)] text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-10">
-          Building reliable cloud infrastructure and automating the boring stuff.
-          Based in Gurugram, India.
-        </p>
-
-        {/* CTA buttons */}
-        <div className="animate-fade-up delay-500 flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-          <a
-            href="#contact"
-            className="px-6 py-2.5 bg-[var(--accent)] text-[var(--bg)] font-medium text-sm rounded-lg hover:opacity-90 transition-all duration-200 mono tracking-wide"
-          >
-            get in touch
-          </a>
-          <a
-            href="/Naveen_Resume.pdf"
-            download
-            className="px-6 py-2.5 border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] font-medium text-sm rounded-lg transition-all duration-200 mono tracking-wide"
-          >
-            download cv
-          </a>
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="animate-fade-up delay-600 flex flex-col items-center gap-2 text-[var(--muted)]">
-          <p className="mono text-xs tracking-widest opacity-50">scroll</p>
-          <ArrowDown size={14} className="opacity-40 animate-bounce" />
+        <div className="animate-fade-up delay-600 flex justify-center mt-20 text-[var(--muted)]">
+          <div className="flex flex-col items-center gap-2">
+            <p className="mono text-xs tracking-widest opacity-40">scroll down</p>
+            <ArrowDown size={14} className="opacity-30 animate-bounce" />
+          </div>
         </div>
       </div>
-
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[var(--bg)] to-transparent pointer-events-none" />
     </section>
   )
 }

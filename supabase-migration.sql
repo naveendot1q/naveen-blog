@@ -31,17 +31,17 @@ CREATE POLICY "Authenticated admin can do everything"
   USING (auth.role() = 'authenticated')
   WITH CHECK (auth.role() = 'authenticated');
 
--- Index for slug lookups
+-- Indexes
 CREATE INDEX IF NOT EXISTS blog_posts_slug_idx ON blog_posts (slug);
 CREATE INDEX IF NOT EXISTS blog_posts_published_idx ON blog_posts (published, created_at DESC);
 
--- Sample post to confirm setup works
+-- Sample post
 INSERT INTO blog_posts (title, slug, excerpt, content, tags, published)
 VALUES (
   'Hello World — My Cloud Journey',
   'hello-world-cloud-journey',
-  'A quick intro to my blog and what I plan to write about — cloud infrastructure, DevOps pipelines, and everything in between.',
-  E'# Hello World\n\nWelcome to my blog! I''m **Naveen Meel**, a Network and Cloud Engineer based in Gurugram, India.\n\n## What I''ll be writing about\n\n- AWS infrastructure patterns\n- CI/CD pipeline design with Jenkins & GitLab\n- Terraform tips and gotchas\n- MPLS and enterprise networking\n- Docker & Kubernetes in practice\n\n## Why this blog?\n\nI learn best by writing. This is my space to document things I figure out, experiments I run, and lessons from production.\n\nStay tuned!\n\n```bash\n# A taste of what''s coming\nterraform init && terraform plan\n```\n',
+  'A quick intro to my blog and what I plan to write about — cloud infrastructure, DevOps pipelines, MPLS networking, and everything in between.',
+  E'# Hello World\n\nWelcome to my blog! I''m **Naveen Meel**, a Network and Cloud Engineer based in Gurugram, India.\n\n## What I''ll be writing about\n\n- AWS infrastructure patterns and architecture\n- CI/CD pipeline design with Jenkins & GitLab\n- Terraform tips, modules, and production gotchas\n- MPLS and enterprise B2B networking (Airtel)\n- Docker & Kubernetes in practice\n- Security tooling: SonarQube, Trivy, OWASP\n\n## Why this blog?\n\nI learn best by writing. This is my space to document things I figure out, experiments I run, and lessons from working at scale.\n\nStay tuned!\n\n```bash\n# A taste of what''s coming\nterraform init && terraform plan -out=tfplan\n```\n',
   ARRAY['devops', 'cloud', 'intro'],
   TRUE
 )
