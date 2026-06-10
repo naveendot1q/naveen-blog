@@ -1,6 +1,8 @@
--- Run this in your Supabase SQL Editor (Dashboard > SQL Editor > New query)
+-- ============================================================
+-- Run this entire file in Supabase SQL Editor
+-- ============================================================
 
--- Blog posts table
+-- 1. Blog posts table
 CREATE TABLE IF NOT EXISTS blog_posts (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
@@ -13,35 +15,76 @@ CREATE TABLE IF NOT EXISTS blog_posts (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable Row Level Security
-ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
+-- 2. Approved blog readers table
+--    Admin manually adds emails here to grant blog access.
+CREATE TABLE IF NOT EXISTS blog_readers (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  name TEXT DEFAULT '',
+  approved BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- Drop existing policies if any (safe re-run)
+-- ── Row Level Security ─────────────────────────────────────
+
+ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE blog_readers ENABLE ROW LEVEL SECURITY;
+
+-- Drop old policies safely
 DROP POLICY IF EXISTS "Public can read published posts" ON blog_posts;
 DROP POLICY IF EXISTS "Authenticated admin can do everything" ON blog_posts;
+DROP POLICY IF EXISTS "Approved readers can read published posts" ON blog_posts;
+DROP POLICY IF EXISTS "Admin full access blog_posts" ON blog_posts;
+DROP POLICY IF EXISTS "Readers can check own approval" ON blog_readers;
+DROP POLICY IF EXISTS "Admin full access blog_readers" ON blog_readers;
 
--- Anyone can read published posts
-CREATE POLICY "Public can read published posts"
+-- blog_posts: only approved authenticated readers can SELECT published posts
+CREATE POLICY "Approved readers can read published posts"
   ON blog_posts FOR SELECT
-  USING (published = TRUE);
+  USING (
+    published = TRUE
+    AND auth.role() = 'authenticated'
+    AND EXISTS (
+      SELECT 1 FROM blog_readers
+      WHERE email = auth.email()
+      AND approved = TRUE
+    )
+  );
 
--- Authenticated users (admin) can do everything
-CREATE POLICY "Authenticated admin can do everything"
+-- blog_posts: admin (your email) can do everything
+CREATE POLICY "Admin full access blog_posts"
   ON blog_posts FOR ALL
-  USING (auth.role() = 'authenticated')
-  WITH CHECK (auth.role() = 'authenticated');
+  USING (auth.email() = 'naveenmeel10@gmail.com')
+  WITH CHECK (auth.email() = 'naveenmeel10@gmail.com');
 
--- Indexes
+-- blog_readers: logged-in user can read their own row to check approval
+CREATE POLICY "Readers can check own approval"
+  ON blog_readers FOR SELECT
+  USING (auth.email() = email);
+
+-- blog_readers: admin can manage all rows
+CREATE POLICY "Admin full access blog_readers"
+  ON blog_readers FOR ALL
+  USING (auth.email() = 'naveenmeel10@gmail.com')
+  WITH CHECK (auth.email() = 'naveenmeel10@gmail.com');
+
+-- ── Indexes ────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS blog_posts_slug_idx ON blog_posts (slug);
 CREATE INDEX IF NOT EXISTS blog_posts_published_idx ON blog_posts (published, created_at DESC);
+CREATE INDEX IF NOT EXISTS blog_readers_email_idx ON blog_readers (email);
 
--- Sample post
+-- ── Seed: admin is always an approved reader ───────────────
+INSERT INTO blog_readers (email, name, approved)
+VALUES ('naveenmeel10@gmail.com', 'Naveen Meel (Admin)', TRUE)
+ON CONFLICT (email) DO NOTHING;
+
+-- ── Seed: sample blog post ─────────────────────────────────
 INSERT INTO blog_posts (title, slug, excerpt, content, tags, published)
 VALUES (
   'Hello World — My Cloud Journey',
   'hello-world-cloud-journey',
-  'A quick intro to my blog and what I plan to write about — cloud infrastructure, DevOps pipelines, MPLS networking, and everything in between.',
-  E'# Hello World\n\nWelcome to my blog! I''m **Naveen Meel**, a Network and Cloud Engineer based in Gurugram, India.\n\n## What I''ll be writing about\n\n- AWS infrastructure patterns and architecture\n- CI/CD pipeline design with Jenkins & GitLab\n- Terraform tips, modules, and production gotchas\n- MPLS and enterprise B2B networking (Airtel)\n- Docker & Kubernetes in practice\n- Security tooling: SonarQube, Trivy, OWASP\n\n## Why this blog?\n\nI learn best by writing. This is my space to document things I figure out, experiments I run, and lessons from working at scale.\n\nStay tuned!\n\n```bash\n# A taste of what''s coming\nterraform init && terraform plan -out=tfplan\n```\n',
+  'A quick intro to my blog and what I plan to write about — cloud infrastructure, DevOps pipelines, and everything in between.',
+  E'# Hello World\n\nWelcome to my blog! I''m **Naveen Meel**, a Network and Cloud Engineer based in Gurugram, India.\n\n## What I''ll write about\n\n- AWS infrastructure patterns\n- CI/CD with Jenkins & GitLab\n- Terraform tips and production gotchas\n- MPLS and enterprise networking\n- Docker & Kubernetes in practice\n\n## Why this blog?\n\nI learn best by writing.\n\n```bash\nterraform init && terraform plan\n```\n',
   ARRAY['devops', 'cloud', 'intro'],
   TRUE
 )

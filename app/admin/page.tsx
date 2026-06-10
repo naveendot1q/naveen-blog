@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AdminClient from './AdminClient'
 
@@ -7,20 +6,27 @@ export default async function AdminPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/auth/login')
-  }
+  if (!user) redirect('/auth/login')
 
-  // Only allow admin email
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'naveenmeel10@gmail.com'
-  if (user.email !== adminEmail) {
-    redirect('/')
-  }
+  if (user.email !== adminEmail) redirect('/')
 
-  const { data: posts } = await supabase
-    .from('blog_posts')
-    .select('id, title, slug, published, created_at, tags')
-    .order('created_at', { ascending: false })
+  const [{ data: posts }, { data: readers }] = await Promise.all([
+    supabase
+      .from('blog_posts')
+      .select('id, title, slug, published, created_at, tags')
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('blog_readers')
+      .select('id, email, name, approved, created_at')
+      .order('created_at', { ascending: false }),
+  ])
 
-  return <AdminClient posts={posts || []} userEmail={user.email || ''} />
+  return (
+    <AdminClient
+      posts={posts || []}
+      readers={readers || []}
+      userEmail={user.email || ''}
+    />
+  )
 }

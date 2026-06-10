@@ -97,7 +97,7 @@ export default function BlogListClient({ posts, activityMap }: Props) {
       <div className="mb-10 p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="font-semibold text-[var(--text)] text-sm">Writing consistency</p>
+            <p className="font-semibold text-[var(--text)] text-sm">Reading consistency</p>
             <p className="mono text-xs text-[var(--muted)] mt-0.5">{totalPosts} post{totalPosts !== 1 ? 's' : ''} in the last year</p>
           </div>
           <div className="flex items-center gap-1.5 text-[10px] text-[var(--muted)] mono">

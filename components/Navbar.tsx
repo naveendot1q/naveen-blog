@@ -7,16 +7,16 @@ import { Sun, Moon, Menu, X } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 
 const homeLinks = [
-  { label: 'about', href: '#about' },
-  { label: 'skills', href: '#skills' },
-  { label: 'experience', href: '#experience' },
-  { label: 'blog', href: '/blog' },
-  { label: 'contact', href: '#contact' },
+  { label: 'About', href: '#about' },
+  { label: 'Skills', href: '#skills' },
+  { label: 'Experience', href: '#experience' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'Contact', href: '#contact' },
 ]
 
 const blogLinks = [
-  { label: 'home', href: '/' },
-  { label: 'blog', href: '/blog' },
+  { label: 'Home', href: '/' },
+  { label: 'Blog', href: '/blog' },
 ]
 
 export default function Navbar() {
@@ -43,7 +43,7 @@ export default function Navbar() {
           naveenmeel
         </Link>
 
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-7">
           {links.map((link) => (
             <Link key={link.label} href={link.href}
               className="text-xs text-[var(--muted)] hover:text-[var(--text)] transition-colors font-medium tracking-wide uppercase">
