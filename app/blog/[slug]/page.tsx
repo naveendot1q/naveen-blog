@@ -28,28 +28,31 @@ async function getPost(slug: string): Promise<Post | null> {
       .eq('slug', slug)
       .eq('published', true)
       .single()
-    return data
+    return (data as Post) ?? null
   } catch {
     return null
   }
 }
 
-async function getRelatedPosts(tags: string[], currentSlug: string): Promise<Post[]> {
+async function getRelatedPosts(tags: string[]): Promise<Post[]> {
   if (!tags || tags.length === 0) return []
   try {
     const supabase = await createClient()
-    // Fetch all published posts that overlap any of the current tags
+    // Fetch all published posts — we filter by tag overlap in JS
+    // (avoids relying on .overlaps() which may not be available in all client versions)
     const { data } = await supabase
       .from('blog_posts')
       .select('id, title, slug, excerpt, tags, created_at')
       .eq('published', true)
-      .overlaps('tags', tags)
     if (!data) return []
-    // Sort alphabetically by title (A → Z), then numerically by date as tiebreak
-    return data.sort((a: Post, b: Post) => {
-      const titleCmp = a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
-      if (titleCmp !== 0) return titleCmp
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    // Filter to posts that share at least one tag
+    const related = (data as Post[]).filter((p) =>
+      p.tags && p.tags.some((t) => tags.includes(t))
+    )
+    // Sort A → Z by title, then by date as tiebreak
+    return related.sort((a, b) => {
+      const cmp = a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+      return cmp !== 0 ? cmp : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     })
   } catch {
     return []
@@ -69,29 +72,24 @@ export default async function BlogPostPage({
   const post = await getPost(slug)
   if (!post) notFound()
 
-  // Extract headings for TOC
   const headings = extractHeadings(post.content)
+  const relatedAll = await getRelatedPosts(post.tags || [])
 
-  // Get related posts (sorted A→Z by title)
-  const relatedAll = await getRelatedPosts(post.tags || [], post.slug)
-
-  // Find current post's position in the sorted list for prev/next
   const currentIndex = relatedAll.findIndex((p) => p.slug === post.slug)
   const prevPost = currentIndex > 0 ? relatedAll[currentIndex - 1] : null
-  const nextPost = currentIndex < relatedAll.length - 1 ? relatedAll[currentIndex + 1] : null
+  const nextPost = currentIndex !== -1 && currentIndex < relatedAll.length - 1
+    ? relatedAll[currentIndex + 1]
+    : null
 
   return (
     <div className="min-h-screen pt-20">
       <div className="max-w-7xl mx-auto px-6 py-16">
-        {/* Back link */}
         <Link href="/blog"
           className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors mb-10 font-medium">
           <ArrowLeft size={13} /> All posts
         </Link>
 
-        {/* Two-column layout: article + sticky TOC */}
         <div className="flex gap-16 items-start">
-
           {/* ── Main article ── */}
           <article className="flex-1 min-w-0">
             <header className="mb-12">
@@ -102,11 +100,9 @@ export default async function BlogPostPage({
                   ))}
                 </div>
               )}
-
               <h1 className="text-3xl md:text-4xl font-bold text-[var(--text)] mb-4 leading-tight">
                 {post.title}
               </h1>
-
               <div className="flex items-center gap-5 text-xs text-[var(--muted)] mono">
                 <span className="flex items-center gap-1.5">
                   <Calendar size={11} />
@@ -119,7 +115,6 @@ export default async function BlogPostPage({
                   {estimateReadTime(post.content)} min read
                 </span>
               </div>
-
               {post.excerpt && (
                 <p className="mt-5 text-[var(--muted)] text-base leading-relaxed border-l-2 border-[var(--accent)] pl-4">
                   {post.excerpt}
@@ -129,10 +124,8 @@ export default async function BlogPostPage({
 
             <hr className="border-[var(--border)] mb-12" />
 
-            {/* Markdown content */}
             <MarkdownRenderer content={post.content} />
 
-            {/* Author + back */}
             <div className="mt-16 pt-8 border-t border-[var(--border)] flex items-center justify-between">
               <Link href="/blog"
                 className="flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--accent)] transition-colors font-medium">
@@ -149,7 +142,6 @@ export default async function BlogPostPage({
               </div>
             </div>
 
-            {/* Related posts + prev/next */}
             <RelatedPosts
               currentSlug={post.slug}
               currentTags={post.tags || []}

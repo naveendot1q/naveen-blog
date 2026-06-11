@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, ArrowLeft, Tag } from 'lucide-react'
-import { Calendar } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Tag, Calendar } from 'lucide-react'
 
 interface Post {
   id: string

@@ -6,48 +6,32 @@ import { List } from 'lucide-react'
 interface Heading {
   id: string
   text: string
-  level: number   // 1 = h1, 2 = h2, 3 = h3
+  level: number
 }
 
-interface Props {
-  headings: Heading[]
-}
-
-export default function TableOfContents({ headings }: Props) {
+export default function TableOfContents({ headings }: { headings: Heading[] }) {
   const [activeId, setActiveId] = useState<string>('')
   const [isScrollable, setIsScrollable] = useState(false)
   const tocRef = useRef<HTMLDivElement>(null)
 
-  // Track which heading is currently in view
   useEffect(() => {
     if (headings.length === 0) return
-
     const observer = new IntersectionObserver(
       (entries) => {
-        // Find the topmost visible heading
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-
-        if (visible.length > 0) {
-          setActiveId(visible[0].target.id)
-        }
+        if (visible.length > 0) setActiveId(visible[0].target.id)
       },
-      {
-        rootMargin: '-80px 0px -60% 0px',
-        threshold: 0,
-      }
+      { rootMargin: '-80px 0px -60% 0px', threshold: 0 }
     )
-
     headings.forEach(({ id }) => {
       const el = document.getElementById(id)
       if (el) observer.observe(el)
     })
-
     return () => observer.disconnect()
   }, [headings])
 
-  // Check if TOC content overflows (needs scrolling)
   useEffect(() => {
     const el = tocRef.current
     if (!el) return
@@ -60,8 +44,7 @@ export default function TableOfContents({ headings }: Props) {
   const handleClick = (id: string) => {
     const el = document.getElementById(id)
     if (!el) return
-    const offset = 90 // account for fixed navbar
-    const top = el.getBoundingClientRect().top + window.scrollY - offset
+    const top = el.getBoundingClientRect().top + window.scrollY - 90
     window.scrollTo({ top, behavior: 'smooth' })
     setActiveId(id)
   }
@@ -70,7 +53,6 @@ export default function TableOfContents({ headings }: Props) {
 
   return (
     <aside className="hidden xl:block w-64 shrink-0">
-      {/* Sticky wrapper — fixed in viewport, only scrolls when hovering TOC */}
       <div className="sticky top-24">
         <div className="flex items-center gap-2 mb-3">
           <List size={13} className="text-[var(--accent)]" />
@@ -79,19 +61,10 @@ export default function TableOfContents({ headings }: Props) {
           </p>
         </div>
 
-        {/* Scrollable TOC list — only scrolls on hover */}
+        {/* Use a className-only approach — no inline style with non-standard props */}
         <div
           ref={tocRef}
-          className={`
-            max-h-[calc(100vh-140px)] pr-1
-            overflow-y-hidden hover:overflow-y-auto
-            transition-all duration-200
-            ${isScrollable ? 'hover:overflow-y-auto' : ''}
-          `}
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'var(--border) transparent',
-          }}
+          className="toc-scroll max-h-[calc(100vh-140px)] pr-1 overflow-y-hidden"
         >
           <nav className="space-y-0.5 border-l border-[var(--border)]">
             {headings.map((h) => {
@@ -99,22 +72,20 @@ export default function TableOfContents({ headings }: Props) {
               const indent =
                 h.level === 1 ? 'pl-3' :
                 h.level === 2 ? 'pl-3' :
-                h.level === 3 ? 'pl-6' :
-                'pl-9'
+                h.level === 3 ? 'pl-6' : 'pl-9'
 
               return (
                 <button
                   key={h.id}
                   onClick={() => handleClick(h.id)}
-                  className={`
-                    w-full text-left block py-1.5 text-xs leading-snug transition-all duration-150
-                    ${indent}
-                    ${isActive
+                  className={[
+                    'w-full text-left block py-1.5 text-xs leading-snug transition-all duration-150',
+                    indent,
+                    isActive
                       ? 'text-[var(--accent)] font-semibold border-l-2 border-[var(--accent)] -ml-px'
-                      : 'text-[var(--muted)] hover:text-[var(--text)]'
-                    }
-                    ${h.level === 1 ? 'font-medium' : ''}
-                  `}
+                      : 'text-[var(--muted)] hover:text-[var(--text)]',
+                    h.level === 1 ? 'font-medium' : '',
+                  ].join(' ')}
                 >
                   {h.text}
                 </button>
@@ -123,7 +94,6 @@ export default function TableOfContents({ headings }: Props) {
           </nav>
         </div>
 
-        {/* Scroll hint if overflowing */}
         {isScrollable && (
           <p className="mono text-[9px] text-[var(--muted)] opacity-40 mt-2 text-center">
             hover to scroll

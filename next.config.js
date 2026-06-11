@@ -4,10 +4,17 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '*.supabase.co',
+        hostname: '**.supabase.co',
       },
     ],
   },
-};
+  // Suppress non-critical build warnings
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig
