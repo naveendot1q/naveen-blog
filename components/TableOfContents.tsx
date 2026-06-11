@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { List } from 'lucide-react'
 
 interface Heading {
@@ -11,9 +11,9 @@ interface Heading {
 
 export default function TableOfContents({ headings }: { headings: Heading[] }) {
   const [activeId, setActiveId] = useState<string>('')
-  const [isScrollable, setIsScrollable] = useState(false)
   const tocRef = useRef<HTMLDivElement>(null)
 
+  // Track active heading via IntersectionObserver
   useEffect(() => {
     if (headings.length === 0) return
     const observer = new IntersectionObserver(
@@ -32,15 +32,6 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
     return () => observer.disconnect()
   }, [headings])
 
-  useEffect(() => {
-    const el = tocRef.current
-    if (!el) return
-    const check = () => setIsScrollable(el.scrollHeight > el.clientHeight)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [headings])
-
   const handleClick = (id: string) => {
     const el = document.getElementById(id)
     if (!el) return
@@ -52,54 +43,57 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
   if (headings.length === 0) return null
 
   return (
-    <aside className="hidden xl:block w-64 shrink-0">
-      <div className="sticky top-24">
-        <div className="flex items-center gap-2 mb-3">
-          <List size={13} className="text-[var(--accent)]" />
-          <p className="mono text-[10px] text-[var(--muted)] tracking-[0.25em] uppercase font-medium">
-            On this page
-          </p>
+    <>
+      {/* 
+        True fixed sidebar — sits in its own fixed layer, 
+        completely independent of the article scroll flow.
+        Only visible on xl screens (≥1280px).
+      */}
+      <aside className="hidden xl:block fixed top-24 right-0 w-72 h-[calc(100vh-96px)] pointer-events-none z-30">
+        {/* Inner box — right-aligned, with padding from viewport edge */}
+        <div className="absolute right-6 top-0 w-60 pointer-events-auto">
+          {/* Header */}
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[var(--border)]">
+            <List size={13} className="text-[var(--accent)]" />
+            <p className="mono text-[10px] text-[var(--muted)] tracking-[0.25em] uppercase font-medium">
+              On this page
+            </p>
+          </div>
+
+          {/* Scrollable nav — only scrolls when mouse is on it */}
+          <div
+            ref={tocRef}
+            className="toc-scroll max-h-[calc(100vh-180px)] overflow-y-hidden"
+          >
+            <nav className="border-l border-[var(--border)]">
+              {headings.map((h) => {
+                const isActive = activeId === h.id
+                const indent =
+                  h.level === 1 ? 'pl-3' :
+                  h.level === 2 ? 'pl-3' :
+                  h.level === 3 ? 'pl-6' : 'pl-9'
+
+                return (
+                  <button
+                    key={h.id}
+                    onClick={() => handleClick(h.id)}
+                    className={[
+                      'w-full text-left block py-1.5 pr-2 text-xs leading-snug transition-all duration-150',
+                      indent,
+                      isActive
+                        ? 'text-[var(--accent)] font-semibold border-l-2 border-[var(--accent)] -ml-px'
+                        : 'text-[var(--muted)] hover:text-[var(--text)]',
+                      h.level === 1 ? 'font-medium' : '',
+                    ].join(' ')}
+                  >
+                    {h.text}
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
         </div>
-
-        {/* Use a className-only approach — no inline style with non-standard props */}
-        <div
-          ref={tocRef}
-          className="toc-scroll max-h-[calc(100vh-140px)] pr-1 overflow-y-hidden"
-        >
-          <nav className="space-y-0.5 border-l border-[var(--border)]">
-            {headings.map((h) => {
-              const isActive = activeId === h.id
-              const indent =
-                h.level === 1 ? 'pl-3' :
-                h.level === 2 ? 'pl-3' :
-                h.level === 3 ? 'pl-6' : 'pl-9'
-
-              return (
-                <button
-                  key={h.id}
-                  onClick={() => handleClick(h.id)}
-                  className={[
-                    'w-full text-left block py-1.5 text-xs leading-snug transition-all duration-150',
-                    indent,
-                    isActive
-                      ? 'text-[var(--accent)] font-semibold border-l-2 border-[var(--accent)] -ml-px'
-                      : 'text-[var(--muted)] hover:text-[var(--text)]',
-                    h.level === 1 ? 'font-medium' : '',
-                  ].join(' ')}
-                >
-                  {h.text}
-                </button>
-              )
-            })}
-          </nav>
-        </div>
-
-        {isScrollable && (
-          <p className="mono text-[9px] text-[var(--muted)] opacity-40 mt-2 text-center">
-            hover to scroll
-          </p>
-        )}
-      </div>
-    </aside>
+      </aside>
+    </>
   )
 }
