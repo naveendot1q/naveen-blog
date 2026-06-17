@@ -22,7 +22,7 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
         if (visible.length > 0) setActiveId(visible[0].target.id)
       },
-      { rootMargin: '-80px 0px -60% 0px', threshold: 0 }
+      { rootMargin: '-112px 0px -60% 0px', threshold: 0 }
     )
     headings.forEach(({ id }) => {
       const el = document.getElementById(id)
@@ -44,12 +44,12 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
   return (
     /*
      * The TOC column is ~20% of the flex container.
-     * `self-start` + `sticky top-24` makes it stick in place while
+     * `self-start` + `sticky top-28` makes it stick in place while
      * the article (the flex sibling) scrolls. This is the correct pattern —
      * sticky works perfectly when the parent is a tall flex row.
      * Hidden on screens smaller than xl (< 1280px).
      */
-    <aside className="hidden xl:flex xl:flex-col w-[22%] shrink-0 self-start sticky top-24">
+    <aside className="hidden xl:flex xl:flex-col w-[22%] shrink-0 self-start sticky top-28">
       {/* Header */}
       <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[var(--border)]">
         <List size={13} className="text-[var(--accent)]" />

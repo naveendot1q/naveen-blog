@@ -32,7 +32,7 @@ export default async function BlogPage() {
   })
 
   return (
-    <div className="min-h-screen pt-20">
+    <div className="min-h-screen pt-28">
       <div className="max-w-5xl mx-auto px-6 py-16">
         <div className="mb-10">
           <Link href="/" className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors mb-8 font-medium">
