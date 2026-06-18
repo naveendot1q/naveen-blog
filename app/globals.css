@@ -163,7 +163,7 @@ body {
 .delay-600 { animation-delay: 0.6s; }
 
 /* Scroll offset for fixed navbar when jumping to anchors */
-.scroll-mt-24 { scroll-margin-top: 112px; }
+.scroll-mt-24 { scroll-margin-top: 96px; }
 
 /* TOC custom scrollbar when hovered */
 aside div::-webkit-scrollbar { width: 3px; }

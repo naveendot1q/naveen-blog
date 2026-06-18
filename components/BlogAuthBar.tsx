@@ -3,43 +3,40 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, BookOpen } from 'lucide-react'
 
 export default function BlogAuthBar() {
   const router = useRouter()
   const [email, setEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
+    createClient().auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null)
     })
   }, [])
 
   const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    await createClient().auth.signOut()
     router.push('/blog/login')
     router.refresh()
   }
 
   if (!email) return null
 
+  // The Navbar is h-14 (56px). This bar sits directly below it at top-14.
   return (
-    /*
-     * Fixed at top-[57px] — directly below the fixed Navbar (which is ~57px tall).
-     * z-40 keeps it below the Navbar (z-50) but above page content.
-     * This prevents the double-header overlap on blog pages.
-     */
-    <div className="fixed top-[57px] left-0 right-0 z-40 border-b border-[var(--border)] bg-[var(--surface)] bg-opacity-95 backdrop-blur-sm px-6 py-2">
+    <div className="fixed top-14 left-0 right-0 z-40 border-b border-[var(--border)] bg-[var(--bg)]/95 backdrop-blur-md px-6 py-1.5">
       <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-          <User size={11} className="text-[var(--accent)]" />
-          <span className="font-medium">{email}</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--accent)] bg-opacity-10 border border-[var(--accent)] border-opacity-20">
+            <BookOpen size={10} className="text-[var(--accent)]" />
+            <span className="mono text-[10px] text-[var(--accent)] font-medium tracking-wide">private blog</span>
+          </div>
+          <span className="text-[11px] text-[var(--muted)]">{email}</span>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-1.5 text-xs text-[var(--muted)] hover:text-red-400 transition-colors font-medium"
+          className="flex items-center gap-1.5 text-[11px] text-[var(--muted)] hover:text-red-400 transition-colors font-medium px-2 py-1 rounded-md hover:bg-red-500 hover:bg-opacity-10"
         >
           <LogOut size={11} /> Sign out
         </button>

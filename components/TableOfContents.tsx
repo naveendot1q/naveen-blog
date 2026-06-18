@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { List } from 'lucide-react'
 
 interface Heading {
   id: string
@@ -22,7 +21,7 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
         if (visible.length > 0) setActiveId(visible[0].target.id)
       },
-      { rootMargin: '-112px 0px -60% 0px', threshold: 0 }
+      { rootMargin: '-96px 0px -60% 0px', threshold: 0 }
     )
     headings.forEach(({ id }) => {
       const el = document.getElementById(id)
@@ -34,7 +33,7 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
   const handleClick = (id: string) => {
     const el = document.getElementById(id)
     if (!el) return
-    const top = el.getBoundingClientRect().top + window.scrollY - 90
+    const top = el.getBoundingClientRect().top + window.scrollY - 96
     window.scrollTo({ top, behavior: 'smooth' })
     setActiveId(id)
   }
@@ -42,53 +41,71 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
   if (headings.length === 0) return null
 
   return (
-    /*
-     * The TOC column is ~20% of the flex container.
-     * `self-start` + `sticky top-28` makes it stick in place while
-     * the article (the flex sibling) scrolls. This is the correct pattern —
-     * sticky works perfectly when the parent is a tall flex row.
-     * Hidden on screens smaller than xl (< 1280px).
-     */
-    <aside className="hidden xl:flex xl:flex-col w-[22%] shrink-0 self-start sticky top-28">
+    <aside className="hidden xl:flex xl:flex-col w-[22%] shrink-0 self-start sticky top-24">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[var(--border)]">
-        <List size={13} className="text-[var(--accent)]" />
-        <p className="mono text-[10px] text-[var(--muted)] tracking-[0.25em] uppercase font-medium">
-          On this page
-        </p>
+      <div className="flex items-center gap-2 mb-5">
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--accent)] bg-opacity-10 border border-[var(--accent)] border-opacity-20">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="1" width="4" height="1" rx="0.5" fill="currentColor" className="text-[var(--accent)]"/>
+            <rect x="0" y="4" width="10" height="1" rx="0.5" fill="currentColor" className="text-[var(--accent)] opacity-60"/>
+            <rect x="0" y="7" width="7" height="1" rx="0.5" fill="currentColor" className="text-[var(--accent)] opacity-40"/>
+          </svg>
+          <span className="mono text-[10px] text-[var(--accent)] font-medium tracking-widest uppercase">
+            On this page
+          </span>
+        </div>
       </div>
 
-      {/* Nav — scrolls only when hovered, max viewport height */}
+      {/* TOC nav — scrolls only when hovered */}
       <div
         ref={tocRef}
-        className="toc-scroll max-h-[calc(100vh-180px)] overflow-y-hidden"
+        className="toc-scroll max-h-[calc(100vh-200px)] overflow-y-hidden"
       >
-        <nav className="border-l border-[var(--border)]">
+        <nav className="space-y-0.5">
           {headings.map((h) => {
             const isActive = activeId === h.id
-            const indent =
-              h.level === 1 ? 'pl-3' :
-              h.level === 2 ? 'pl-3' :
-              h.level === 3 ? 'pl-6' : 'pl-9'
+            const isH1 = h.level === 1
+            const isH2 = h.level === 2
+            const isH3 = h.level === 3
 
             return (
               <button
                 key={h.id}
                 onClick={() => handleClick(h.id)}
                 className={[
-                  'w-full text-left block py-1.5 pr-2 text-xs leading-snug transition-all duration-150',
-                  indent,
+                  'w-full text-left flex items-start gap-2 py-1 pr-2 rounded-md transition-all duration-150 group',
+                  isH3 ? 'pl-4' : isH1 || isH2 ? 'pl-0' : 'pl-6',
                   isActive
-                    ? 'text-[var(--accent)] font-semibold border-l-2 border-[var(--accent)] -ml-px'
+                    ? 'text-[var(--accent)]'
                     : 'text-[var(--muted)] hover:text-[var(--text)]',
-                  h.level === 1 ? 'font-medium' : '',
                 ].join(' ')}
               >
-                {h.text}
+                {/* Active indicator dot / indent guide */}
+                <span className={[
+                  'mt-1.5 shrink-0 rounded-full transition-all duration-150',
+                  isH3 ? 'w-1 h-1' : 'w-1.5 h-1.5',
+                  isActive
+                    ? 'bg-[var(--accent)]'
+                    : 'bg-[var(--border)] group-hover:bg-[var(--muted)]',
+                ].join(' ')} />
+                <span className={[
+                  'text-xs leading-snug',
+                  isH1 ? 'font-semibold' : isH2 ? 'font-medium' : 'font-normal opacity-85',
+                  isActive ? 'text-[var(--accent)]' : '',
+                ].join(' ')}>
+                  {h.text}
+                </span>
               </button>
             )
           })}
         </nav>
+      </div>
+
+      {/* Progress hint at bottom */}
+      <div className="mt-4 pt-3 border-t border-[var(--border)]">
+        <p className="mono text-[9px] text-[var(--muted)] opacity-50 tracking-wider uppercase">
+          hover to scroll
+        </p>
       </div>
     </aside>
   )

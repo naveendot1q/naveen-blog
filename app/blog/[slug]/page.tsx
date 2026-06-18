@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import TableOfContents from '@/components/TableOfContents'
 import { extractHeadings } from '@/lib/slugifyHeading'
+import ReadingTracker from '@/components/ReadingTracker'
 
 interface Post {
   id: string
@@ -77,7 +78,7 @@ export default async function BlogPostPage({
     ? relatedAll[currentIndex + 1] : null
 
   return (
-    <div className="min-h-screen pt-28">
+    <div className="min-h-screen pt-24">
       {/*
         Full-width page wrapper — no max-w here, that's set on the inner flex row.
         The flex row is: [TOC 20%] [Article 80%], TOC on the LEFT.
@@ -100,7 +101,8 @@ export default async function BlogPostPage({
           <TableOfContents headings={headings} />
 
           {/* RIGHT: Article — takes remaining ~78% */}
-          <article className="flex-1 min-w-0 max-w-4xl">
+          <article id="blog-article" className="flex-1 min-w-0 max-w-4xl">
+            <ReadingTracker postSlug={post.slug} />
 
             <header className="mb-12">
               {post.tags?.length > 0 && (

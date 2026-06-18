@@ -52,7 +52,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen grid-bg flex items-center justify-center px-6 pt-28">
+    <div className="min-h-screen grid-bg flex items-center justify-center px-6 pt-24">
       <div className="w-full max-w-sm">
         <Link href="/"
           className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors mb-8 font-medium">

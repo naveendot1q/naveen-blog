@@ -3,36 +3,46 @@ import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import BlogListClient from './BlogListClient'
 
-async function getPosts() {
+async function getData() {
   try {
     const supabase = await createClient()
-    const { data } = await supabase
-      .from('blog_posts')
-      .select('id, title, slug, excerpt, tags, created_at, updated_at')
-      .eq('published', true)
-      .order('created_at', { ascending: false })
-    return data || []
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const [postsRes, readsRes] = await Promise.all([
+      supabase
+        .from('blog_posts')
+        .select('id, title, slug, excerpt, tags, created_at, updated_at')
+        .eq('published', true)
+        .order('created_at', { ascending: false }),
+      user?.email
+        ? supabase
+            .from('blog_reads')
+            .select('read_date, progress')
+            .eq('reader_email', user.email)
+        : Promise.resolve({ data: [] }),
+    ])
+
+    // Build activityMap: date -> highest progress reading that day (across all posts)
+    // Level 1 = 0.25 (25%), 2 = 0.5 (50%), 3 = 0.75 (75%), 4 = 1.0 (100%)
+    const activityMap: Record<string, number> = {}
+    const reads = (readsRes as { data: { read_date: string; progress: number }[] | null }).data || []
+    reads.forEach((r) => {
+      const d = r.read_date
+      // Sum progress across posts read that day (multiple reads = brighter cell)
+      activityMap[d] = (activityMap[d] || 0) + r.progress
+    })
+
+    return { posts: postsRes.data || [], activityMap }
   } catch {
-    return []
+    return { posts: [], activityMap: {} }
   }
 }
 
 export default async function BlogPage() {
-  const posts = await getPosts()
-
-  // Build activity map for heatmap (keyed by YYYY-MM-DD)
-  const activityMap: Record<string, number> = {}
-  posts.forEach((p: { created_at: string; updated_at?: string }) => {
-    const d = p.created_at.slice(0, 10)
-    activityMap[d] = (activityMap[d] || 0) + 1
-    if (p.updated_at && p.updated_at !== p.created_at) {
-      const u = p.updated_at.slice(0, 10)
-      activityMap[u] = (activityMap[u] || 0) + 0.5
-    }
-  })
+  const { posts, activityMap } = await getData()
 
   return (
-    <div className="min-h-screen pt-28">
+    <div className="min-h-screen pt-24">
       <div className="max-w-5xl mx-auto px-6 py-16">
         <div className="mb-10">
           <Link href="/" className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors mb-8 font-medium">
