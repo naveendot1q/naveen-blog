@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useTheme } from './ThemeProvider'
-import { Sun, Moon, Menu, X, Terminal } from 'lucide-react'
+import { Sun, Moon, Menu, X } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 
 const homeLinks = [
@@ -22,47 +22,55 @@ const blogLinks = [
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme()
   const [scrolled, setScrolled] = useState(false)
+  const [hidden, setHidden] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const pathname = usePathname()
+  const lastScrollY = typeof window !== 'undefined' ? { current: 0 } : { current: 0 }
 
   const isBlogPage = pathname?.startsWith('/blog') || pathname?.startsWith('/admin') || pathname?.startsWith('/auth')
   const links = isBlogPage ? blogLinks : homeLinks
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll)
+    let lastY = 0
+    const onScroll = () => {
+      const y = window.scrollY
+      setScrolled(y > 20)
+      // Hide when scrolling down past 80px, show when scrolling up
+      if (y > 80) {
+        setHidden(y > lastY)
+      } else {
+        setHidden(false)
+      }
+      lastY = y
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled
-        ? 'bg-[var(--bg)]/95 backdrop-blur-md border-b border-[var(--border)]'
-        : 'bg-transparent'
-    }`}>
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        hidden ? '-translate-y-full' : 'translate-y-0'
+      } ${
+        scrolled
+          ? 'bg-[var(--bg)] border-b border-[var(--border)]'
+          : 'bg-transparent'
+      }`}
+    >
       <div className="max-w-screen-2xl mx-auto px-6 h-14 flex items-center justify-between">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-7 h-7 rounded-lg bg-[var(--accent)] bg-opacity-15 border border-[var(--accent)] border-opacity-30 flex items-center justify-center group-hover:bg-opacity-25 transition-all">
-            <Terminal size={13} className="text-[var(--accent)]" />
-          </div>
-          <span className="font-bold text-[var(--text)] tracking-tight text-sm group-hover:text-[var(--accent)] transition-colors">
-            naveenmeel
-          </span>
+        <Link href="/" className="font-bold text-[var(--text)] tracking-tight text-sm hover:text-[var(--accent)] transition-colors">
+          naveenmeel
         </Link>
 
         {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-7">
           {links.map((link) => (
             <Link
               key={link.label}
               href={link.href}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium tracking-wide uppercase transition-all duration-150 ${
-                pathname === link.href
-                  ? 'text-[var(--accent)] bg-[var(--accent)] bg-opacity-10'
-                  : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'
-              }`}
+              className="text-xs text-[var(--muted)] hover:text-[var(--text)] transition-colors font-medium tracking-wide uppercase"
             >
               {link.label}
             </Link>
@@ -95,7 +103,7 @@ export default function Navbar() {
               key={link.label}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              className="px-3 py-2 rounded-lg text-sm text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)] hover:bg-opacity-5 transition-all font-medium uppercase tracking-wide"
+              className="px-3 py-2 rounded-lg text-sm text-[var(--muted)] hover:text-[var(--accent)] transition-all font-medium uppercase tracking-wide"
             >
               {link.label}
             </Link>

@@ -43,17 +43,10 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
   return (
     <aside className="hidden xl:flex xl:flex-col w-[22%] shrink-0 self-start sticky top-24">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-5">
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--accent)] bg-opacity-10 border border-[var(--accent)] border-opacity-20">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="0" y="1" width="4" height="1" rx="0.5" fill="currentColor" className="text-[var(--accent)]"/>
-            <rect x="0" y="4" width="10" height="1" rx="0.5" fill="currentColor" className="text-[var(--accent)] opacity-60"/>
-            <rect x="0" y="7" width="7" height="1" rx="0.5" fill="currentColor" className="text-[var(--accent)] opacity-40"/>
-          </svg>
-          <span className="mono text-[10px] text-[var(--accent)] font-medium tracking-widest uppercase">
-            On this page
-          </span>
-        </div>
+      <div className="flex items-center gap-2 mb-5 pb-3 border-b border-[var(--border)]">
+        <span className="mono text-[10px] text-[var(--muted)] tracking-widest uppercase font-medium">
+          On this page
+        </span>
       </div>
 
       {/* TOC nav — scrolls only when hovered */}
