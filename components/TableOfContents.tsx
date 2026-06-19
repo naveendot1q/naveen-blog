@@ -21,7 +21,7 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
         if (visible.length > 0) setActiveId(visible[0].target.id)
       },
-      { rootMargin: '-96px 0px -60% 0px', threshold: 0 }
+      { rootMargin: '-80px 0px -60% 0px', threshold: 0 }
     )
     headings.forEach(({ id }) => {
       const el = document.getElementById(id)
@@ -41,7 +41,7 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
   if (headings.length === 0) return null
 
   return (
-    <aside className="hidden xl:flex xl:flex-col w-[22%] shrink-0 self-start sticky top-24">
+    <aside className="hidden xl:flex xl:flex-col w-[22%] shrink-0 self-start sticky top-20">
       {/* Header */}
       <div className="flex items-center gap-2 mb-5 pb-3 border-b border-[var(--border)]">
         <span className="mono text-[10px] text-[var(--muted)] tracking-widest uppercase font-medium">

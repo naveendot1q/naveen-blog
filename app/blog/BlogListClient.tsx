@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
 
 interface Post {
   id: string
@@ -21,16 +20,13 @@ interface Props {
 
 function generateHeatmapDates() {
   const weeks: string[][] = []
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const startDate = new Date(today)
-  startDate.setDate(today.getDate() - 364 - today.getDay())
-  let current = new Date(startDate)
-  let week: string[] = []
-  while (current <= today) {
-    week.push(current.toISOString().slice(0, 10))
+  const today = new Date(); today.setHours(0,0,0,0)
+  const start = new Date(today); start.setDate(today.getDate() - 364 - today.getDay())
+  let cur = new Date(start); let week: string[] = []
+  while (cur <= today) {
+    week.push(cur.toISOString().slice(0,10))
     if (week.length === 7) { weeks.push(week); week = [] }
-    current.setDate(current.getDate() + 1)
+    cur.setDate(cur.getDate() + 1)
   }
   if (week.length) weeks.push(week)
   return weeks
@@ -50,166 +46,169 @@ export default function BlogListClient({ posts, activityMap }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('all')
 
   const categories = useMemo(() => {
-    const counts: Record<string, number> = {}
+    const counts: Record<string,number> = {}
     posts.flatMap(p => p.tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1 })
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([tag, count]) => ({ tag, count }))
+    return Object.entries(counts).sort((a,b) => b[1]-a[1]).map(([tag,count]) => ({ tag, count }))
   }, [posts])
 
   const filtered = useMemo(() =>
-    activeCategory === 'all' ? posts : posts.filter(p => p.tags?.includes(activeCategory)),
-  [posts, activeCategory])
+    activeCategory === 'all' ? posts : posts.filter(p => p.tags?.includes(activeCategory))
+  , [posts, activeCategory])
 
   const weeks = useMemo(() => generateHeatmapDates(), [])
 
   const monthLabels = useMemo(() => {
     const labels: { label: string; col: number }[] = []
-    let lastMonth = -1
-    weeks.forEach((week, col) => {
-      const m = new Date(week[0]).getMonth()
-      if (m !== lastMonth) { labels.push({ label: MONTHS[m], col }); lastMonth = m }
+    let last = -1
+    weeks.forEach((wk, col) => {
+      const m = new Date(wk[0]).getMonth()
+      if (m !== last) { labels.push({ label: MONTHS[m], col }); last = m }
     })
     return labels
   }, [weeks])
 
   const activeDays = Object.values(activityMap).filter(v => v > 0).length
 
+  // Split posts for newspaper layout: featured (first) + rest
+  const [featured, ...rest] = filtered
+
   return (
     <div>
-      {/* ── Heatmap ── */}
-      <div className="mb-10 p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-        <div className="flex items-center justify-between mb-4">
+      {/* ── Reading heatmap ── */}
+      <div className="mb-8 p-4 border border-[var(--border)] rounded-lg">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-sm font-semibold text-[var(--text)]">Reading consistency</p>
-            <p className="mono text-xs text-[var(--muted)] mt-0.5">
-              {activeDays} day{activeDays !== 1 ? 's' : ''} with reading activity
+            <p className="text-xs font-semibold text-[var(--text)] uppercase tracking-widest" style={{ fontFamily: 'Georgia, serif' }}>
+              Reading Log
+            </p>
+            <p className="mono text-[10px] text-[var(--muted)] mt-0.5">
+              {activeDays} day{activeDays !== 1 ? 's' : ''} of reading in the last year
             </p>
           </div>
-          <div className="flex items-center gap-1.5 mono text-[10px] text-[var(--muted)]">
+          <div className="flex items-center gap-1 mono text-[10px] text-[var(--muted)]">
             <span>less</span>
             {[0,1,2,3,4].map(l => <div key={l} className="heatmap-cell" data-level={l} />)}
             <span>more</span>
           </div>
         </div>
-
         <div className="overflow-x-auto">
           <div className="relative" style={{ minWidth: weeks.length * 15 }}>
             <div className="relative h-4 mb-1">
               {monthLabels.map(({ label, col }) => (
-                <span key={`${label}-${col}`} className="mono text-[9px] text-[var(--muted)] absolute" style={{ left: col * 15 }}>
-                  {label}
-                </span>
+                <span key={`${label}-${col}`} className="mono text-[9px] text-[var(--muted)] absolute" style={{ left: col * 15 }}>{label}</span>
               ))}
             </div>
             <div className="flex gap-[3px]">
-              {weeks.map((week, wi) => (
+              {weeks.map((wk, wi) => (
                 <div key={wi} className="flex flex-col gap-[3px]">
-                  {week.map(date => {
+                  {wk.map(date => {
                     const v = activityMap[date] || 0
-                    return (
-                      <div
-                        key={date}
-                        className="heatmap-cell"
-                        data-level={getLevel(v)}
-                        title={v > 0 ? `${date}: ${Math.min(100, Math.round(v * 100))}% read` : date}
-                      />
-                    )
+                    return <div key={date} className="heatmap-cell" data-level={getLevel(v)} title={v > 0 ? `${date}: ${Math.min(100, Math.round(v * 100))}% read` : date} />
                   })}
                 </div>
               ))}
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="mt-3 pt-3 border-t border-[var(--border)] flex flex-wrap gap-x-5 gap-y-1">
-          {[{l:1,t:'≤25% read'},{l:2,t:'~50% read'},{l:3,t:'~75% read'},{l:4,t:'full read'}].map(({l,t}) => (
-            <div key={l} className="flex items-center gap-1.5">
-              <div className="heatmap-cell" data-level={l} />
-              <span className="mono text-[10px] text-[var(--muted)]">{t}</span>
-            </div>
+      {/* ── Category filter — newspaper "section" style ── */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-1 gap-y-2 mb-6 border-b border-[var(--border)] pb-4">
+          <span className="mono text-[10px] text-[var(--muted)] uppercase tracking-widest mr-2">Section:</span>
+          {['all', ...categories.map(c => c.tag)].map((tag) => (
+            <button
+              key={tag}
+              onClick={() => setActiveCategory(tag)}
+              className={`mono text-[10px] uppercase tracking-widest px-2 py-0.5 transition-all ${
+                activeCategory === tag
+                  ? 'text-[var(--bg)] bg-[var(--text)]'
+                  : 'text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              {tag === 'all' ? `All (${posts.length})` : `${tag} (${categories.find(c=>c.tag===tag)?.count ?? 0})`}
+            </button>
           ))}
         </div>
-      </div>
+      )}
 
-      {/* ── Category filter ── */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <button
-          onClick={() => setActiveCategory('all')}
-          className={`px-3 py-1 rounded-md text-xs font-medium transition-all border ${
-            activeCategory === 'all'
-              ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--surface)]'
-              : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--muted)]'
-          }`}
-        >
-          All <span className="opacity-60 ml-1">{posts.length}</span>
-        </button>
-        {categories.map(({ tag, count }) => (
-          <button
-            key={tag}
-            onClick={() => setActiveCategory(tag)}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-all border ${
-              activeCategory === tag
-                ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--surface)]'
-                : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--muted)]'
-            }`}
-          >
-            {tag} <span className="opacity-60 ml-1">{count}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* ── Posts list ── */}
       {filtered.length === 0 ? (
-        <div className="py-16 text-center border border-[var(--border)] rounded-xl">
-          <p className="text-sm text-[var(--muted)]">No posts in this category yet.</p>
+        <div className="py-16 text-center border border-[var(--border)]">
+          <p className="text-sm text-[var(--muted)]" style={{ fontFamily: 'Georgia, serif' }}>
+            No articles in this section yet.
+          </p>
         </div>
       ) : (
-        <div className="divide-y divide-[var(--border)] border border-[var(--border)] rounded-xl overflow-hidden">
-          {filtered.map((post) => {
-            const date = new Date(post.created_at)
-            const mon = date.toLocaleDateString('en-US', { month: 'short' })
-            const day = date.toLocaleDateString('en-US', { day: '2-digit' })
-            const yr  = date.getFullYear()
-
-            return (
-              <Link
-                key={post.id}
-                href={`/blog/${post.slug}`}
-                className="group flex items-start gap-5 px-5 py-4 bg-[var(--surface)] hover:bg-[var(--surface2)] transition-colors"
+        <div>
+          {/* ── Featured article (first post) ── */}
+          {featured && (
+            <Link href={`/blog/${featured.slug}`} className="group block mb-8 pb-8 border-b border-[var(--border)]">
+              <div className="flex items-start gap-2 mb-2">
+                {featured.tags?.slice(0,1).map(t => (
+                  <span key={t} className="mono text-[10px] text-[var(--accent)] uppercase tracking-widest font-medium">{t}</span>
+                ))}
+                <span className="mono text-[10px] text-[var(--muted)] uppercase tracking-widest">
+                  · {new Date(featured.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </span>
+              </div>
+              <h2
+                className="text-3xl font-black text-[var(--text)] group-hover:text-[var(--accent)] transition-colors leading-tight mb-3"
+                style={{ fontFamily: 'Georgia, serif' }}
               >
-                {/* Date column */}
-                <div className="shrink-0 w-14 text-right pt-0.5">
-                  <p className="mono text-xs text-[var(--accent)] font-medium leading-none">{mon} {day}</p>
-                  <p className="mono text-[10px] text-[var(--muted)] mt-0.5">{yr}</p>
-                </div>
+                {featured.title}
+              </h2>
+              <p className="text-sm text-[var(--muted)] leading-relaxed max-w-2xl">
+                {featured.excerpt}
+              </p>
+              <span className="inline-block mt-3 mono text-xs text-[var(--accent)] group-hover:underline">
+                Read article →
+              </span>
+            </Link>
+          )}
 
-                {/* Divider */}
-                <div className="shrink-0 w-px self-stretch bg-[var(--border)] mt-1" />
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <h2 className="font-semibold text-[var(--text)] text-sm group-hover:text-[var(--accent)] transition-colors leading-snug mb-1">
-                    {post.title}
-                  </h2>
-                  <p className="text-xs text-[var(--muted)] line-clamp-2 leading-relaxed">
-                    {post.excerpt}
-                  </p>
-                  {post.tags?.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {post.tags.slice(0, 3).map(tag => (
-                        <span key={tag} className="tag">{tag}</span>
+          {/* ── Rest: two-column newspaper grid ── */}
+          {rest.length > 0 && (
+            <div className="columns-1 sm:columns-2 gap-0">
+              {rest.map((post, i) => {
+                const isLast = i === rest.length - 1
+                const isOdd = rest.length % 2 !== 0
+                return (
+                  <Link
+                    key={post.id}
+                    href={`/blog/${post.slug}`}
+                    className={`group break-inside-avoid block border-[var(--border)] p-0 ${
+                      i % 2 === 0 ? 'sm:border-r' : ''
+                    } ${!isLast && !(isOdd && i === rest.length - 1) ? 'border-b' : ''} px-0 py-5 sm:px-5`}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {post.tags?.slice(0,1).map(t => (
+                        <span key={t} className="mono text-[10px] text-[var(--accent)] uppercase tracking-widest">{t}</span>
                       ))}
+                      <span className="mono text-[10px] text-[var(--muted)]">
+                        · {new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
                     </div>
-                  )}
-                </div>
-
-                {/* Arrow */}
-                <ArrowRight
-                  size={14}
-                  className="shrink-0 text-[var(--border)] group-hover:text-[var(--accent)] transition-colors mt-0.5"
-                />
-              </Link>
-            )
-          })}
+                    <h3
+                      className="font-bold text-[var(--text)] text-base group-hover:text-[var(--accent)] transition-colors leading-snug mb-2"
+                      style={{ fontFamily: 'Georgia, serif' }}
+                    >
+                      {post.title}
+                    </h3>
+                    <p className="text-xs text-[var(--muted)] leading-relaxed line-clamp-3">
+                      {post.excerpt}
+                    </p>
+                    {post.tags && post.tags.length > 1 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {post.tags.slice(1, 3).map(t => (
+                          <span key={t} className="tag" style={{ fontSize: 10 }}>{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

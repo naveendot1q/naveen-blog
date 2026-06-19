@@ -78,7 +78,7 @@ export default async function BlogPostPage({
     ? relatedAll[currentIndex + 1] : null
 
   return (
-    <div className="min-h-screen pt-24">
+    <div className="min-h-screen pt-20">
       {/*
         Full-width page wrapper — no max-w here, that's set on the inner flex row.
         The flex row is: [TOC 20%] [Article 80%], TOC on the LEFT.

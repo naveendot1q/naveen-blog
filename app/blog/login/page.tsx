@@ -52,7 +52,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen grid-bg flex items-center justify-center px-6 pt-24">
+    <div className="min-h-screen grid-bg flex items-center justify-center px-6 pt-20">
       <div className="w-full max-w-sm">
         <Link href="/"
           className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors mb-8 font-medium">
@@ -92,7 +92,7 @@ function LoginForm() {
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-red-500 bg-opacity-10 border border-red-500 border-opacity-20">
+              <div className="p-3 rounded-xl bg-[#fee2e2] border border-red-300 dark:bg-[#3f1212] dark:border-red-900">
                 <p className="text-xs text-red-400 leading-relaxed">{error}</p>
               </div>
             )}

@@ -22,14 +22,10 @@ async function getData() {
         : Promise.resolve({ data: [] }),
     ])
 
-    // Build activityMap: date -> highest progress reading that day (across all posts)
-    // Level 1 = 0.25 (25%), 2 = 0.5 (50%), 3 = 0.75 (75%), 4 = 1.0 (100%)
     const activityMap: Record<string, number> = {}
     const reads = (readsRes as { data: { read_date: string; progress: number }[] | null }).data || []
     reads.forEach((r) => {
-      const d = r.read_date
-      // Sum progress across posts read that day (multiple reads = brighter cell)
-      activityMap[d] = (activityMap[d] || 0) + r.progress
+      activityMap[r.read_date] = (activityMap[r.read_date] || 0) + r.progress
     })
 
     return { posts: postsRes.data || [], activityMap }
@@ -40,20 +36,38 @@ async function getData() {
 
 export default async function BlogPage() {
   const { posts, activityMap } = await getData()
+  const now = new Date()
+  const dateStr = now.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  })
 
   return (
-    <div className="min-h-screen pt-24">
-      <div className="max-w-5xl mx-auto px-6 py-16">
-        <div className="mb-10">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors mb-8 font-medium">
-            <ArrowLeft size={13} /> Back home
+    <div className="min-h-screen pt-20">
+      <div className="max-w-5xl mx-auto px-6 py-10">
+        <div className="mb-2">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors font-medium">
+            <ArrowLeft size={12} /> Back home
           </Link>
-          <p className="mono text-xs text-[var(--accent)] tracking-[0.3em] uppercase mb-2">~/blog</p>
-          <h1 className="text-4xl font-bold text-[var(--text)] mb-2">Writing</h1>
-          <p className="text-[var(--muted)] text-sm">
-            Thoughts on cloud infrastructure, networking, DevOps, and the occasional rabbit hole.
-          </p>
         </div>
+
+        {/* Newspaper masthead */}
+        <header className="border-y border-[var(--text)] py-5 mb-1">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="mono text-[10px] text-[var(--muted)] tracking-[0.3em] uppercase mb-1">
+                Cloud · DevOps · Networking
+              </p>
+              <h1 className="text-5xl font-black text-[var(--text)] tracking-tight leading-none" style={{ fontFamily: 'Georgia, serif' }}>
+                The Naveen Post
+              </h1>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-xs text-[var(--muted)]">{dateStr}</p>
+              <p className="mono text-[10px] text-[var(--muted)] mt-1">{posts.length} article{posts.length !== 1 ? 's' : ''} published</p>
+            </div>
+          </div>
+        </header>
+        <div className="h-[2px] bg-[var(--text)] mb-8" />
 
         <BlogListClient posts={posts} activityMap={activityMap} />
       </div>
