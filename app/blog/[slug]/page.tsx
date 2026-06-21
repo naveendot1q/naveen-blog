@@ -4,8 +4,9 @@ import { ArrowLeft, ArrowRight, Calendar, Clock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import TableOfContents from '@/components/TableOfContents'
-import { extractHeadings } from '@/lib/slugifyHeading'
+import WriterProfile from '@/components/WriterProfile'
 import ReadingTracker from '@/components/ReadingTracker'
+import { extractHeadings } from '@/lib/slugifyHeading'
 
 interface Post {
   id: string
@@ -43,13 +44,12 @@ async function getRelatedPosts(tags: string[]): Promise<Post[]> {
       .select('id, title, slug, excerpt, tags, created_at')
       .eq('published', true)
     if (!data) return []
-    const related = (data as Post[]).filter((p) =>
-      p.tags && p.tags.some((t) => tags.includes(t))
-    )
-    return related.sort((a, b) => {
-      const cmp = a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
-      return cmp !== 0 ? cmp : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    })
+    return (data as Post[])
+      .filter((p) => p.tags && p.tags.some((t) => tags.includes(t)))
+      .sort((a, b) => {
+        const cmp = a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+        return cmp !== 0 ? cmp : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      })
   } catch {
     return []
   }
@@ -69,8 +69,6 @@ export default async function BlogPostPage({
   if (!post) notFound()
 
   const headings = extractHeadings(post.content)
-
-  // Prev / Next — sorted A→Z by title
   const relatedAll = await getRelatedPosts(post.tags || [])
   const currentIndex = relatedAll.findIndex((p) => p.slug === post.slug)
   const prevPost = currentIndex > 0 ? relatedAll[currentIndex - 1] : null
@@ -80,28 +78,33 @@ export default async function BlogPostPage({
   return (
     <div className="min-h-screen pt-20">
       {/*
-        Full-width page wrapper — no max-w here, that's set on the inner flex row.
-        The flex row is: [TOC 20%] [Article 80%], TOC on the LEFT.
-        On screens < xl the TOC hides and the article takes full width.
+        Three-column layout on xl+: TOC 20% | Article 60% | Profile 20%
+        All three columns are the same height (full viewport minus navbar).
+        On screens below xl: only the article shows, full width.
       */}
-      <div className="w-full px-6 py-16">
+      <div className="w-full">
 
-        {/* Back link — above the flex row, full width */}
-        <div className="max-w-screen-2xl mx-auto mb-10">
-          <Link href="/blog"
-            className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors font-medium">
+        {/* Back link row — sits above the three columns */}
+        <div className="max-w-screen-2xl mx-auto px-6 pt-6 pb-4">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors font-medium"
+          >
             <ArrowLeft size={13} /> All posts
           </Link>
         </div>
 
-        {/* ── Two-column layout ── */}
-        <div className="max-w-screen-2xl mx-auto flex gap-10 items-start">
+        {/* Three-column flex row — no horizontal padding here, columns handle their own */}
+        <div className="max-w-screen-2xl mx-auto flex items-start">
 
-          {/* LEFT: TOC — 20% on xl+, hidden below xl */}
+          {/* ── LEFT: TOC (20%) ── */}
           <TableOfContents headings={headings} />
 
-          {/* RIGHT: Article — takes remaining ~78% */}
-          <article id="blog-article" className="flex-1 min-w-0 max-w-4xl">
+          {/* ── CENTRE: Article (60%) ── */}
+          <article
+            id="blog-article"
+            className="flex-1 min-w-0 px-8 py-8 xl:border-x xl:border-[var(--border)]"
+          >
             <ReadingTracker postSlug={post.slug} />
 
             <header className="mb-12">
@@ -138,31 +141,25 @@ export default async function BlogPostPage({
 
             <MarkdownRenderer content={post.content} />
 
-            {/* Author + back */}
+            {/* Back link */}
             <div className="mt-16 pt-8 border-t border-[var(--border)] flex items-center justify-between">
-              <Link href="/blog"
-                className="flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--accent)] transition-colors font-medium">
+              <Link
+                href="/blog"
+                className="flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--accent)] transition-colors font-medium"
+              >
                 <ArrowLeft size={13} /> Back to blog
               </Link>
-              <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/avatar.png" alt="Naveen Meel"
-                  className="w-9 h-9 rounded-full object-cover border border-[var(--border)]" />
-                <div>
-                  <p className="text-xs font-semibold text-[var(--text)]">Naveen Meel</p>
-                  <p className="mono text-[10px] text-[var(--muted)]">Cloud & DevOps Engineer</p>
-                </div>
-              </div>
             </div>
 
-            {/* ── Prev / Next navigation — sorted A→Z ── */}
+            {/* Prev / Next */}
             {(prevPost || nextPost) && (
-              <div className="mt-10 grid sm:grid-cols-2 gap-4">
-                {/* Previous */}
+              <div className="mt-8 grid sm:grid-cols-2 gap-4">
                 <div>
                   {prevPost ? (
-                    <Link href={`/blog/${prevPost.slug}`}
-                      className="group flex flex-col gap-2 p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] hover:border-opacity-50 transition-all duration-200 h-full">
+                    <Link
+                      href={`/blog/${prevPost.slug}`}
+                      className="group flex flex-col gap-2 p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-all h-full"
+                    >
                       <div className="flex items-center gap-1.5 text-[10px] mono text-[var(--muted)] uppercase tracking-widest">
                         <ArrowLeft size={10} /> Previous
                       </div>
@@ -176,17 +173,17 @@ export default async function BlogPostPage({
                       </div>
                     </Link>
                   ) : (
-                    <div className="p-5 rounded-2xl border border-[var(--border)] border-dashed h-full flex items-center justify-center min-h-[80px]">
+                    <div className="p-5 rounded-xl border border-[var(--border)] border-dashed h-full flex items-center justify-center min-h-[80px]">
                       <p className="text-xs text-[var(--muted)] opacity-40">First post</p>
                     </div>
                   )}
                 </div>
-
-                {/* Next */}
                 <div>
                   {nextPost ? (
-                    <Link href={`/blog/${nextPost.slug}`}
-                      className="group flex flex-col gap-2 p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] hover:border-opacity-50 transition-all duration-200 h-full sm:items-end sm:text-right">
+                    <Link
+                      href={`/blog/${nextPost.slug}`}
+                      className="group flex flex-col gap-2 p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-all h-full sm:items-end sm:text-right"
+                    >
                       <div className="flex items-center justify-end gap-1.5 text-[10px] mono text-[var(--muted)] uppercase tracking-widest">
                         Next <ArrowRight size={10} />
                       </div>
@@ -200,15 +197,18 @@ export default async function BlogPostPage({
                       </div>
                     </Link>
                   ) : (
-                    <div className="p-5 rounded-2xl border border-[var(--border)] border-dashed h-full flex items-center justify-center min-h-[80px]">
+                    <div className="p-5 rounded-xl border border-[var(--border)] border-dashed h-full flex items-center justify-center min-h-[80px]">
                       <p className="text-xs text-[var(--muted)] opacity-40">Latest post</p>
                     </div>
                   )}
                 </div>
               </div>
             )}
-
           </article>
+
+          {/* ── RIGHT: Writer profile (20%) ── */}
+          <WriterProfile />
+
         </div>
       </div>
     </div>

@@ -33,57 +33,55 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
   const handleClick = (id: string) => {
     const el = document.getElementById(id)
     if (!el) return
-    const top = el.getBoundingClientRect().top + window.scrollY - 96
-    window.scrollTo({ top, behavior: 'smooth' })
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' })
     setActiveId(id)
   }
 
   if (headings.length === 0) return null
 
   return (
-    <aside className="hidden xl:flex xl:flex-col w-[22%] shrink-0 self-start sticky top-20">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-5 pb-3 border-b border-[var(--border)]">
-        <span className="mono text-[10px] text-[var(--muted)] tracking-widest uppercase font-medium">
+    // self-start + sticky top-0: sticks from the very top of the viewport
+    // (pt-20 on the page already handles the navbar clearance for content;
+    //  the TOC column itself starts flush and fills top-to-bottom)
+    <aside className="hidden xl:flex xl:flex-col w-[20%] shrink-0 self-start sticky top-20 h-[calc(100vh-80px)]">
+      {/* Header — flush to top */}
+      <div className="px-4 py-4 border-b border-[var(--border)]">
+        <p className="mono text-[11px] text-[var(--muted)] tracking-[0.25em] uppercase font-semibold">
           On this page
-        </span>
+        </p>
       </div>
 
-      {/* TOC nav — scrolls only when hovered */}
+      {/* Scrollable nav */}
       <div
         ref={tocRef}
-        className="toc-scroll max-h-[calc(100vh-200px)] overflow-y-hidden"
+        className="toc-scroll flex-1 overflow-y-hidden hover:overflow-y-auto py-3 px-4"
       >
         <nav className="space-y-0.5">
           {headings.map((h) => {
             const isActive = activeId === h.id
-            const isH1 = h.level === 1
-            const isH2 = h.level === 2
-            const isH3 = h.level === 3
+            const indent = h.level === 3 ? 'pl-4' : h.level >= 4 ? 'pl-7' : 'pl-0'
 
             return (
               <button
                 key={h.id}
                 onClick={() => handleClick(h.id)}
                 className={[
-                  'w-full text-left flex items-start gap-2 py-1 pr-2 rounded-md transition-all duration-150 group',
-                  isH3 ? 'pl-4' : isH1 || isH2 ? 'pl-0' : 'pl-6',
+                  'w-full text-left flex items-start gap-2.5 py-1.5 pr-2 rounded-md transition-all duration-150 group',
+                  indent,
                   isActive
                     ? 'text-[var(--accent)]'
-                    : 'text-[var(--muted)] hover:text-[var(--text)]',
+                    : 'text-[var(--text)] hover:text-[var(--accent)]',
                 ].join(' ')}
               >
-                {/* Active indicator dot / indent guide */}
+                {/* dot indicator */}
                 <span className={[
-                  'mt-1.5 shrink-0 rounded-full transition-all duration-150',
-                  isH3 ? 'w-1 h-1' : 'w-1.5 h-1.5',
-                  isActive
-                    ? 'bg-[var(--accent)]'
-                    : 'bg-[var(--border)] group-hover:bg-[var(--muted)]',
+                  'shrink-0 rounded-full mt-[7px] transition-all',
+                  h.level <= 2 ? 'w-[6px] h-[6px]' : 'w-1 h-1',
+                  isActive ? 'bg-[var(--accent)]' : 'bg-[var(--border)] group-hover:bg-[var(--accent)]',
                 ].join(' ')} />
                 <span className={[
-                  'text-xs leading-snug',
-                  isH1 ? 'font-semibold' : isH2 ? 'font-medium' : 'font-normal opacity-85',
+                  'leading-snug',
+                  h.level === 1 ? 'text-sm font-bold' : h.level === 2 ? 'text-sm font-semibold' : 'text-xs font-medium',
                   isActive ? 'text-[var(--accent)]' : '',
                 ].join(' ')}>
                   {h.text}
@@ -94,9 +92,9 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
         </nav>
       </div>
 
-      {/* Progress hint at bottom */}
-      <div className="mt-4 pt-3 border-t border-[var(--border)]">
-        <p className="mono text-[9px] text-[var(--muted)] opacity-50 tracking-wider uppercase">
+      {/* Footer — flush to bottom */}
+      <div className="px-4 py-3 border-t border-[var(--border)]">
+        <p className="mono text-[9px] text-[var(--muted)] opacity-40 tracking-widest uppercase">
           hover to scroll
         </p>
       </div>
