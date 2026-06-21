@@ -11,10 +11,10 @@ export default function WriterProfile() {
 
   return (
     // sticky top-20, full viewport height — mirrors the TOC column
-    <aside className="hidden xl:flex xl:flex-col w-[20%] shrink-0 self-start sticky top-20 h-[calc(100vh-80px)]">
+    <aside className="hidden xl:flex xl:flex-col w-[30%] shrink-0 self-start sticky top-14 h-[calc(100vh-56px)]">
 
       {/* Header — flush to top */}
-      <div className="px-4 py-4 border-b border-[var(--border)]">
+      <div className="px-4 py-3 border-b border-[var(--border)]">
         <p className="mono text-[11px] text-[var(--muted)] tracking-[0.25em] uppercase font-semibold">
           About the author
         </p>

@@ -43,9 +43,9 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
     // self-start + sticky top-0: sticks from the very top of the viewport
     // (pt-20 on the page already handles the navbar clearance for content;
     //  the TOC column itself starts flush and fills top-to-bottom)
-    <aside className="hidden xl:flex xl:flex-col w-[20%] shrink-0 self-start sticky top-20 h-[calc(100vh-80px)]">
+    <aside className="hidden xl:flex xl:flex-col w-[20%] shrink-0 self-start sticky top-14 h-[calc(100vh-56px)]">
       {/* Header — flush to top */}
-      <div className="px-4 py-4 border-b border-[var(--border)]">
+      <div className="px-4 py-3 border-b border-[var(--border)]">
         <p className="mono text-[11px] text-[var(--muted)] tracking-[0.25em] uppercase font-semibold">
           On this page
         </p>

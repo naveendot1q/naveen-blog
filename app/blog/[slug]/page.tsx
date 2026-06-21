@@ -76,7 +76,7 @@ export default async function BlogPostPage({
     ? relatedAll[currentIndex + 1] : null
 
   return (
-    <div className="min-h-screen pt-20">
+    <div className="min-h-screen pt-14">
       {/*
         Three-column layout on xl+: TOC 20% | Article 60% | Profile 20%
         All three columns are the same height (full viewport minus navbar).
@@ -84,17 +84,7 @@ export default async function BlogPostPage({
       */}
       <div className="w-full">
 
-        {/* Back link row — sits above the three columns */}
-        <div className="max-w-screen-2xl mx-auto px-6 pt-6 pb-4">
-          <Link
-            href="/blog"
-            className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors font-medium"
-          >
-            <ArrowLeft size={13} /> All posts
-          </Link>
-        </div>
-
-        {/* Three-column flex row — no horizontal padding here, columns handle their own */}
+        {/* Three-column flex row — no top padding, columns start right below navbar */}
         <div className="max-w-screen-2xl mx-auto flex items-start">
 
           {/* ── LEFT: TOC (20%) ── */}
@@ -103,11 +93,18 @@ export default async function BlogPostPage({
           {/* ── CENTRE: Article (60%) ── */}
           <article
             id="blog-article"
-            className="flex-1 min-w-0 px-8 py-8 xl:border-x xl:border-[var(--border)]"
+            className="flex-1 min-w-0 px-8 pt-4 pb-8 xl:border-x xl:border-[var(--border)]"
           >
             <ReadingTracker postSlug={post.slug} />
 
-            <header className="mb-12">
+            <header className="mb-10">
+              <Link
+                href="/blog"
+                className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors font-medium mb-5 block"
+              >
+                <ArrowLeft size={13} /> All posts
+              </Link>
+
               {post.tags?.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-5">
                   {post.tags.map((tag: string) => (
@@ -141,19 +138,9 @@ export default async function BlogPostPage({
 
             <MarkdownRenderer content={post.content} />
 
-            {/* Back link */}
-            <div className="mt-16 pt-8 border-t border-[var(--border)] flex items-center justify-between">
-              <Link
-                href="/blog"
-                className="flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--accent)] transition-colors font-medium"
-              >
-                <ArrowLeft size={13} /> Back to blog
-              </Link>
-            </div>
-
             {/* Prev / Next */}
             {(prevPost || nextPost) && (
-              <div className="mt-8 grid sm:grid-cols-2 gap-4">
+              <div className="mt-16 pt-8 border-t border-[var(--border)] grid sm:grid-cols-2 gap-4">
                 <div>
                   {prevPost ? (
                     <Link
