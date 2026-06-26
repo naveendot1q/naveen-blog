@@ -334,7 +334,7 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
                           title={reader.approved ? 'Revoke access' : 'Approve access'}>
                           {reader.approved ? <UserX size={13} /> : <UserCheck size={13} />}
                         </button>
-                        <button onClick={() => handleDeleteReader(reader.id, reader.email)}
+                        <button onClick={() => handleDeleteReader(reader.id)}
                           className="p-2 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-red-400 hover:border-red-400 transition-colors">
                           <Trash2 size={13} />
                         </button>
