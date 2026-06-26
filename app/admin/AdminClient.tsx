@@ -30,7 +30,6 @@ type Tab = 'posts' | 'readers'
 
 export default function AdminClient({ posts: initialPosts, readers: initialReaders, userEmail }: Props) {
   const router = useRouter()
-  const supabase = createClient()
   const [tab, setTab] = useState<Tab>('posts')
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [readers, setReaders] = useState<Reader[]>(initialReaders)
@@ -46,10 +45,12 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
   const [readerLoading, setReaderLoading] = useState(false)
   const [readerMsg, setReaderMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null)
+
   const resetForm = () => { setForm({ id: '', title: '', slug: '', excerpt: '', content: '', tags: '', published: false }); setError(null); setSuccess(null) }
 
   const startEdit = (post: Post) => {
-    supabase.from('blog_posts').select('*').eq('id', post.id).single().then(({ data }) => {
+    createClient().from('blog_posts').select('*').eq('id', post.id).single().then(({ data }) => {
       if (data) {
         setForm({ id: data.id, title: data.title, slug: data.slug, excerpt: data.excerpt || '', content: data.content || '', tags: (data.tags || []).join(', '), published: data.published })
         setMode('edit')
@@ -62,12 +63,13 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
     const tags = form.tags.split(',').map(t => t.trim()).filter(Boolean)
     const payload = { title: form.title, slug: form.slug || slugify(form.title), excerpt: form.excerpt, content: form.content, tags, published: publish !== undefined ? publish : form.published, updated_at: new Date().toISOString() }
     try {
+      const sb = createClient()
       if (mode === 'new') {
-        const { data, error: err } = await supabase.from('blog_posts').insert({ ...payload, created_at: new Date().toISOString() }).select().single()
+        const { data, error: err } = await sb.from('blog_posts').insert({ ...payload, created_at: new Date().toISOString() }).select().single()
         if (err) throw err
         setPosts(p => [data, ...p]); setSuccess('Post created!')
       } else {
-        const { data, error: err } = await supabase.from('blog_posts').update(payload).eq('id', form.id).select().single()
+        const { data, error: err } = await sb.from('blog_posts').update(payload).eq('id', form.id).select().single()
         if (err) throw err
         setPosts(p => p.map(x => x.id === form.id ? { ...x, ...data } : x)); setSuccess('Post updated!')
       }
@@ -77,32 +79,41 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
     } finally { setLoading(false) }
   }
 
-  const handleDeletePost = async (id: string, title: string) => {
-    if (!confirm(`Delete "${title}"?`)) return
-    const { error: err } = await supabase.from('blog_posts').delete().eq('id', id)
-    if (!err) setPosts(p => p.filter(x => x.id !== id))
+  const handleDeletePost = async (id: string) => {
+    const sb = createClient()
+    const { error: err } = await sb.from('blog_posts').delete().eq('id', id)
+    if (err) {
+      setError(`Delete failed: ${err.message}`)
+    } else {
+      setPosts(p => p.filter(x => x.id !== id))
+    }
+    setDeleteConfirm(null)
   }
 
   const handleTogglePublish = async (post: Post) => {
-    await supabase.from('blog_posts').update({ published: !post.published }).eq('id', post.id)
-    setPosts(p => p.map(x => x.id === post.id ? { ...x, published: !x.published } : x))
+    const sb = createClient()
+    const { error: err } = await sb.from('blog_posts').update({ published: !post.published }).eq('id', post.id)
+    if (!err) setPosts(p => p.map(x => x.id === post.id ? { ...x, published: !x.published } : x))
+    else setError(`Toggle failed: ${err.message}`)
   }
 
   const handleToggleApproval = async (reader: Reader) => {
-    const { error: err } = await supabase.from('blog_readers').update({ approved: !reader.approved }).eq('id', reader.id)
+    const sb = createClient()
+    const { error: err } = await sb.from('blog_readers').update({ approved: !reader.approved }).eq('id', reader.id)
     if (!err) setReaders(r => r.map(x => x.id === reader.id ? { ...x, approved: !x.approved } : x))
   }
 
-  const handleDeleteReader = async (id: string, email: string) => {
-    if (!confirm(`Remove access for ${email}?`)) return
-    const { error: err } = await supabase.from('blog_readers').delete().eq('id', id)
+  const handleDeleteReader = async (id: string) => {
+    const sb = createClient()
+    const { error: err } = await sb.from('blog_readers').delete().eq('id', id)
     if (!err) setReaders(r => r.filter(x => x.id !== id))
   }
 
   const handleAddReader = async (e: React.FormEvent) => {
     e.preventDefault()
     setReaderLoading(true); setReaderMsg(null)
-    const { error: err } = await supabase.from('blog_readers').insert({ email: newReaderEmail, name: newReaderName, approved: true })
+    const sb = createClient()
+    const { error: err } = await sb.from('blog_readers').insert({ email: newReaderEmail, name: newReaderName, approved: true })
     if (err) {
       setReaderMsg({ type: 'err', text: err.message.includes('duplicate') ? 'This email already exists.' : err.message })
     } else {
@@ -114,7 +125,7 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
     setReaderLoading(false)
   }
 
-  const handleLogout = async () => { await supabase.auth.signOut(); router.push('/'); router.refresh() }
+  const handleLogout = async () => { const sb = createClient(); await sb.auth.signOut(); router.push('/'); router.refresh() }
 
   return (
     <div className="min-h-screen pt-20 px-6 pb-12">
@@ -189,7 +200,7 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
                           <button onClick={() => startEdit(post)} className="p-2 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors">
                             <Edit2 size={13} />
                           </button>
-                          <button onClick={() => handleDeletePost(post.id, post.title)} className="p-2 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-red-400 hover:border-red-400 transition-colors">
+                          <button onClick={() => setDeleteConfirm({ id: post.id, title: post.title })} className="p-2 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-red-400 hover:border-red-400 transition-colors">
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -336,6 +347,39 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
           </div>
         )}
       </div>
+
+      {/* ── Inline delete confirmation modal ── */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0" style={{ background: "rgba(0,0,0,0.65)" }}
+            onClick={() => setDeleteConfirm(null)}
+          />
+          {/* Dialog */}
+          <div className="relative z-10 w-full max-w-sm p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
+            <h3 className="font-bold text-[var(--text)] text-base mb-2">Delete post?</h3>
+            <p className="text-sm text-[var(--muted)] mb-6 leading-relaxed">
+              <span className="text-[var(--text)] font-medium">&ldquo;{deleteConfirm.title}&rdquo;</span>
+              {' '}will be permanently deleted. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleDeletePost(deleteConfirm.id)}
+                className="flex-1 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 py-2.5 border border-[var(--border)] text-[var(--muted)] text-sm rounded-xl hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -25,14 +25,14 @@ export default function WriterProfile() {
         {/* Avatar + name */}
         <div className="flex flex-col items-center text-center gap-4">
           {imgError ? (
-            <div className="w-32 h-32 rounded-full bg-[var(--surface2)] border-2 border-[var(--accent)] flex items-center justify-center">
-              <span className="text-5xl font-bold text-[var(--accent)]">N</span>
+            <div className="w-48 h-48 rounded-full bg-[var(--surface2)] border-2 border-[var(--accent)] flex items-center justify-center">
+              <span className="text-7xl font-bold text-[var(--accent)]">N</span>
             </div>
           ) : (
             <img
               src="/avatar.png"
               alt="Naveen Meel"
-              className="w-32 h-32 rounded-full object-cover border-2 border-[var(--accent)] shrink-0 shadow-lg"
+              className="w-48 h-48 rounded-full object-cover border-2 border-[var(--accent)] shrink-0 shadow-lg"
               onError={() => setImgError(true)}
             />
           )}
