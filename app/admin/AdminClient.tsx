@@ -62,6 +62,23 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
     setLoading(true); setError(null); setSuccess(null)
     const tags = form.tags.split(',').map(t => t.trim()).filter(Boolean)
     const payload = { title: form.title, slug: form.slug || slugify(form.title), excerpt: form.excerpt, content: form.content, tags, published: publish !== undefined ? publish : form.published, updated_at: new Date().toISOString() }
+    // Validate quiz file if provided
+    if (quizFile) {
+      try {
+        const text = await quizFile.text()
+        const parsed = JSON.parse(text)
+        if (!parsed.questions || !Array.isArray(parsed.questions)) {
+          setErr('Quiz JSON must have a "questions" array')
+          setLoading(false)
+          return
+        }
+        setQuizStatus(`✓ Quiz valid — ${parsed.questions.length} question${parsed.questions.length!==1?'s':''}`)
+      } catch {
+        setErr('Quiz file is not valid JSON')
+        setLoading(false)
+        return
+      }
+    }
     try {
       const sb = createClient()
       if (mode === 'new') {

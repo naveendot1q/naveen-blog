@@ -6,6 +6,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer'
 import TableOfContents from '@/components/TableOfContents'
 import WriterProfile from '@/components/WriterProfile'
 import ReadingTracker from '@/components/ReadingTracker'
+import BlogQuiz from '@/components/BlogQuiz'
 import { extractHeadings } from '@/lib/slugifyHeading'
 
 interface Post {
@@ -191,6 +192,8 @@ export default async function BlogPostPage({
                 </div>
               </div>
             )}
+          {/* ── Quiz ── */}
+            <BlogQuiz slug={post.slug} />
           </article>
 
           {/* ── RIGHT: Writer profile (20%) ── */}

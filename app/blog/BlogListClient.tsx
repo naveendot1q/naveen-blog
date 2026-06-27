@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { Calendar, Clock } from 'lucide-react'
+import BlogQuiz from '@/components/BlogQuiz'
 import { createClient } from '@/lib/supabase/client'
 
 interface Post {
@@ -267,6 +268,7 @@ export default function BlogListClient({ posts, activityMap: serverMap }: Props)
                   {readTime(post.excerpt)}
                 </span>
               </div>
+              <BlogQuiz slug={post.slug} inline />
             </Link>
           ))}
         </div>
