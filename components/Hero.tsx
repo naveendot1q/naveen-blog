@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { ArrowDown } from 'lucide-react'
 
 const titles = [
@@ -87,10 +88,10 @@ export default function Hero() {
                 className="px-6 py-2.5 bg-[var(--accent)] text-white font-semibold text-sm rounded-lg hover:bg-[var(--accent-hover)] transition-colors shadow-lg shadow-amber-500/20">
                 Get in touch
               </a>
-              <a href="/blog"
+              <Link href="/blog"
                 className="px-6 py-2.5 border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] font-medium text-sm rounded-lg transition-all duration-200">
                 Read blog
-              </a>
+              </Link>
               <a href="/Naveen_Resume.pdf" download
                 className="px-6 py-2.5 border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] font-medium text-sm rounded-lg transition-all duration-200">
                 Download CV
