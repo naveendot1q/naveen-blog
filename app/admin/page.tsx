@@ -11,6 +11,14 @@ export default async function AdminPage() {
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'naveenmeel10@gmail.com'
   if (user.email !== adminEmail) redirect('/')
 
+  // Ensure admin always exists in blog_readers (auto-heal if deleted)
+  await supabase
+    .from('blog_readers')
+    .upsert(
+      { email: adminEmail, name: 'Naveen Meel (Admin)', approved: true },
+      { onConflict: 'email', ignoreDuplicates: true }
+    )
+
   const [{ data: posts }, { data: readers }] = await Promise.all([
     supabase
       .from('blog_posts')

@@ -47,8 +47,7 @@ function LoginForm() {
     }
 
     const from = searchParams.get('from') || '/blog'
-    router.push(from)
-    router.refresh()
+    window.location.href = from
   }
 
   return (
