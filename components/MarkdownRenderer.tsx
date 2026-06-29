@@ -20,8 +20,6 @@ function HeadingRenderer({ level, children }: { level: 1|2|3|4; children?: React
   return <Tag id={id} className="scroll-mt-24">{children}</Tag>
 }
 
-// Use a cast to Components so react-markdown accepts our renderers
-// without requiring the exact internal prop signature
 const mdComponents = {
   h1: ({ children }: { children?: React.ReactNode }) => <HeadingRenderer level={1}>{children}</HeadingRenderer>,
   h2: ({ children }: { children?: React.ReactNode }) => <HeadingRenderer level={2}>{children}</HeadingRenderer>,

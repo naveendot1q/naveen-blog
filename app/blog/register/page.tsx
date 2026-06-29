@@ -53,7 +53,7 @@ export default function BlogRegisterPage() {
     return (
       <div className="min-h-screen grid-bg flex items-center justify-center px-6 pt-20">
         <div className="w-full max-w-sm text-center">
-          <div className="w-14 h-14 rounded-full bg-[#dcfce7] border border-green-300 dark:bg-[#0f2b1a] dark:border-green-800 flex items-center justify-center mx-auto mb-5">
+          <div className="w-14 h-14 rounded-full bg-green-500 bg-opacity-10 border border-green-500 border-opacity-30 flex items-center justify-center mx-auto mb-5">
             <CheckCircle size={24} className="text-green-500" />
           </div>
           <h1 className="text-xl font-bold text-[var(--text)] mb-2">Request submitted!</h1>
@@ -118,7 +118,7 @@ export default function BlogRegisterPage() {
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-[#fee2e2] border border-red-300 dark:bg-[#3f1212] dark:border-red-900">
+              <div className="p-3 rounded-xl bg-red-500 bg-opacity-10 border border-red-500 border-opacity-20">
                 <p className="text-xs text-red-400 leading-relaxed">{error}</p>
               </div>
             )}

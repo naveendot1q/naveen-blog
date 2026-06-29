@@ -67,7 +67,7 @@ export default function Contact() {
 
             {/* Resume */}
             <a href="/Naveen_Resume.pdf" download="Naveen_Meel_Resume.pdf"
-              className="flex items-center gap-4 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-all duration-200 group">
+              className="flex items-center gap-4 p-4 rounded-xl border border-[var(--accent)] border-opacity-40 bg-[var(--accent)] bg-opacity-5 hover:bg-opacity-10 transition-all duration-200 group">
               <div className="w-10 h-10 rounded-lg bg-[var(--accent)] flex items-center justify-center shrink-0">
                 <Download size={17} className="text-white" />
               </div>

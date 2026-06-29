@@ -91,7 +91,7 @@ export default function Hero() {
               <Link href="/blog"
                 className="px-6 py-2.5 border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] font-medium text-sm rounded-lg transition-all duration-200">
                 Read blog
-              </Link>
+              </a>
               <a href="/Naveen_Resume.pdf" download
                 className="px-6 py-2.5 border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] font-medium text-sm rounded-lg transition-all duration-200">
                 Download CV
