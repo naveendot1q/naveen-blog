@@ -19,6 +19,7 @@ interface Post {
   published: boolean
   created_at: string
   updated_at: string
+  quiz_data?: { questions: { q: string; options: string[]; answer: number; explain?: string }[] } | null
 }
 
 async function getPost(slug: string): Promise<Post | null> {
@@ -192,7 +193,7 @@ export default async function BlogPostPage({
                 </div>
               </div>
             )}
-            <BlogQuiz slug={post.slug} />
+            <BlogQuiz quizData={post.quiz_data ?? null} />
           </article>
 
           {/* ── RIGHT: Writer profile (20%) ── */}

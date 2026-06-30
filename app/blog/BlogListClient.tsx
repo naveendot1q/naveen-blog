@@ -14,6 +14,7 @@ interface Post {
   tags: string[]
   created_at: string
   updated_at?: string
+  quiz_data?: { questions: { q: string; options: string[]; answer: number; explain?: string }[] } | null
 }
 
 interface Props {
@@ -268,7 +269,7 @@ export default function BlogListClient({ posts, activityMap: serverMap }: Props)
                   {readTime(post.excerpt)}
                 </span>
               </div>
-              <BlogQuiz slug={post.slug} inline />
+              <BlogQuiz quizData={post.quiz_data ?? null} inline />
             </Link>
           ))}
         </div>

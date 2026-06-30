@@ -1,33 +1,27 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { CheckCircle, XCircle, ChevronRight, RotateCcw, Trophy } from 'lucide-react'
 
 interface Question { q: string; options: string[]; answer: number; explain?: string }
-interface Quiz { questions: Question[] }
-interface Props { slug: string; inline?: boolean }
+interface QuizData { questions: Question[] }
+interface Props { quizData: QuizData | null; inline?: boolean }
 
-export default function BlogQuiz({ slug, inline = false }: Props) {
-  const [quiz, setQuiz] = useState<Quiz | null>(null)
-  const [loading, setLoading] = useState(true)
+export default function BlogQuiz({ quizData, inline = false }: Props) {
   const [current, setCurrent] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
-  const [answers, setAnswers] = useState<(number | null)[]>([])
+  const [answers, setAnswers] = useState<(number | null)[]>(
+    quizData ? new Array(quizData.questions.length).fill(null) : []
+  )
   const [showResult, setShowResult] = useState(false)
   const [expanded, setExpanded] = useState(!inline)
 
-  useEffect(() => {
-    fetch(`/quizzes/${slug}.json`)
-      .then(r => { if (!r.ok) throw new Error('not found'); return r.json() })
-      .then(data => { setQuiz(data); setAnswers(new Array(data.questions.length).fill(null)); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [slug])
+  // No quiz attached to this post — render nothing
+  if (!quizData || !quizData.questions || quizData.questions.length === 0) return null
 
-  if (loading || !quiz) return null
-
-  const q = quiz.questions[current]
-  const total = quiz.questions.length
-  const score = answers.filter((a, i) => a === quiz.questions[i].answer).length
+  const q = quizData.questions[current]
+  const total = quizData.questions.length
+  const score = answers.filter((a, i) => a === quizData.questions[i].answer).length
   const pct = Math.round((score / total) * 100)
   const grade = pct === 100 ? '🏆 Perfect!' : pct >= 75 ? '🎯 Great!' : pct >= 50 ? '📚 Keep going!' : '💡 Review & retry'
 
@@ -40,15 +34,19 @@ export default function BlogQuiz({ slug, inline = false }: Props) {
   const handlePrev = () => { if (current > 0) { setCurrent(c => c - 1); setSelected(answers[current - 1]) } }
   const handleReset = () => { setCurrent(0); setSelected(null); setAnswers(new Array(total).fill(null)); setShowResult(false) }
 
+  // ── Inline tile badge — visually clear, amber, with icon ──
   if (inline) return (
     <div className="mt-3 pt-3 border-t border-[var(--border)]">
-      <div className="flex items-center justify-between">
-        <span className="mono text-[10px] text-[var(--accent)] tracking-widest uppercase font-semibold">Quiz · {total} question{total !== 1 ? 's' : ''}</span>
-        <span className="mono text-[10px] text-[var(--muted)]">included →</span>
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(245,158,11,0.12)' }}>
+        <Trophy size={11} style={{ color: 'var(--accent)' }} className="shrink-0" />
+        <span className="mono text-[10px] font-bold tracking-wide" style={{ color: 'var(--accent)' }}>
+          QUIZ AVAILABLE · {total} question{total !== 1 ? 's' : ''}
+        </span>
       </div>
     </div>
   )
 
+  // ── Full end-of-post quiz ──
   return (
     <div className="mt-16 border border-[var(--border)] rounded-2xl overflow-hidden">
       <button onClick={() => setExpanded(e => !e)} className="w-full flex items-center justify-between px-6 py-4 bg-[var(--surface)] hover:bg-[var(--surface2)] transition-colors">
@@ -118,7 +116,7 @@ export default function BlogQuiz({ slug, inline = false }: Props) {
                 <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct >= 75 ? '#4ade80' : pct >= 50 ? 'var(--accent)' : '#f87171' }} />
               </div>
               <div className="space-y-2 mb-6 text-left">
-                {quiz.questions.map((question, i) => (
+                {quizData.questions.map((question, i) => (
                   <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
                     {answers[i] === question.answer ? <CheckCircle size={14} className="text-green-500 shrink-0 mt-0.5" /> : <XCircle size={14} className="text-red-400 shrink-0 mt-0.5" />}
                     <div className="flex-1 min-w-0">

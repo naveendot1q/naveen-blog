@@ -132,3 +132,34 @@ CREATE POLICY "Admin full access blog_reads"
 
 CREATE INDEX IF NOT EXISTS blog_reads_email_date_idx ON blog_reads (reader_email, read_date);
 CREATE INDEX IF NOT EXISTS blog_reads_slug_idx       ON blog_reads (post_slug);
+
+-- ── Quiz data column ────────────────────────────────────────
+-- Stores the quiz JSON directly on the post row so admin uploads
+-- persist immediately without needing a code redeploy.
+ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS quiz_data JSONB DEFAULT NULL;
+
+-- ── Attach a sample quiz to the seed post (safe to re-run) ──
+UPDATE blog_posts
+SET quiz_data = '{
+  "questions": [
+    {
+      "q": "Which AWS service provides scalable object storage?",
+      "options": ["EC2", "RDS", "S3", "VPC"],
+      "answer": 2,
+      "explain": "Amazon S3 (Simple Storage Service) is AWS''s scalable object storage service."
+    },
+    {
+      "q": "What does IaC stand for in DevOps?",
+      "options": ["Internet as Code", "Infrastructure as Code", "Integration as Code", "Instance as Code"],
+      "answer": 1,
+      "explain": "IaC means managing infrastructure through config files rather than manual processes."
+    },
+    {
+      "q": "Which tool is used for container orchestration?",
+      "options": ["Terraform", "Ansible", "Kubernetes", "Jenkins"],
+      "answer": 2,
+      "explain": "Kubernetes (K8s) is the industry-standard container orchestration platform."
+    }
+  ]
+}'::jsonb
+WHERE slug = 'hello-world-cloud-journey' AND quiz_data IS NULL;

@@ -11,7 +11,7 @@ async function getData() {
     const [postsRes, readsRes] = await Promise.all([
       supabase
         .from('blog_posts')
-        .select('id, title, slug, excerpt, tags, created_at, updated_at')
+        .select('id, title, slug, excerpt, tags, created_at, updated_at, quiz_data')
         .eq('published', true)
         .order('created_at', { ascending: false }),
       user?.email

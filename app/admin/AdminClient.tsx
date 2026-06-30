@@ -39,6 +39,8 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
   const [success, setSuccess] = useState<string | null>(null)
   const [quizFile, setQuizFile] = useState<File | null>(null)
   const [quizStatus, setQuizStatus] = useState<string>('')
+  const [existingQuizCount, setExistingQuizCount] = useState<number>(0)
+  const [removeQuiz, setRemoveQuiz] = useState(false)
   const [form, setForm] = useState({ id: '', title: '', slug: '', excerpt: '', content: '', tags: '', published: false })
 
   // Reader add form
@@ -49,12 +51,13 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null)
 
-  const resetForm = () => { setForm({ id: '', title: '', slug: '', excerpt: '', content: '', tags: '', published: false }); setError(null); setSuccess(null); setQuizFile(null); setQuizStatus('') }
+  const resetForm = () => { setForm({ id: '', title: '', slug: '', excerpt: '', content: '', tags: '', published: false }); setError(null); setSuccess(null); setQuizFile(null); setQuizStatus(''); setRemoveQuiz(false); setExistingQuizCount(0) }
 
   const startEdit = (post: Post) => {
     createClient().from('blog_posts').select('*').eq('id', post.id).single().then(({ data }) => {
       if (data) {
         setForm({ id: data.id, title: data.title, slug: data.slug, excerpt: data.excerpt || '', content: data.content || '', tags: (data.tags || []).join(', '), published: data.published })
+        setExistingQuizCount(data.quiz_data?.questions?.length || 0)
         setMode('edit')
       }
     })
@@ -63,17 +66,28 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
   const handleSave = async (publish?: boolean) => {
     setLoading(true); setError(null); setSuccess(null)
     const tags = form.tags.split(',').map(t => t.trim()).filter(Boolean)
-    const payload = { title: form.title, slug: form.slug || slugify(form.title), excerpt: form.excerpt, content: form.content, tags, published: publish !== undefined ? publish : form.published, updated_at: new Date().toISOString() }
+    const payload: Record<string, unknown> = { title: form.title, slug: form.slug || slugify(form.title), excerpt: form.excerpt, content: form.content, tags, published: publish !== undefined ? publish : form.published, updated_at: new Date().toISOString() }
+
+    // Validate and attach quiz JSON to the payload so it actually saves
     if (quizFile) {
       try {
         const text = await quizFile.text()
         const parsed = JSON.parse(text)
-        if (!parsed.questions || !Array.isArray(parsed.questions)) {
-          setError('Quiz JSON must have a "questions" array'); setLoading(false); return
+        if (!parsed.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
+          setError('Quiz JSON must have a non-empty "questions" array'); setLoading(false); return
         }
-        setQuizStatus(`✓ ${parsed.questions.length} question${parsed.questions.length !== 1 ? 's' : ''} loaded`)
+        for (const q of parsed.questions) {
+          if (typeof q.q !== 'string' || !Array.isArray(q.options) || typeof q.answer !== 'number') {
+            setError('Each question needs: q (string), options (array), answer (number)'); setLoading(false); return
+          }
+        }
+        payload.quiz_data = parsed
+        setQuizStatus(`✓ ${parsed.questions.length} question${parsed.questions.length !== 1 ? 's' : ''} will be saved`)
       } catch { setError('Quiz file is not valid JSON'); setLoading(false); return }
+    } else if (removeQuiz) {
+      payload.quiz_data = null
     }
+
     try {
       const sb = createClient()
       if (mode === 'new') {
@@ -266,21 +280,52 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
                       className="w-full px-4 py-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] mono text-sm placeholder:text-[var(--muted)] placeholder:opacity-40 focus:outline-none focus:border-[var(--accent)] transition-colors resize-y leading-relaxed" />
                   </div>
                 </div>
-                {/* Quiz JSON upload */}
+                {/* Quiz JSON upload — saves directly to the post, no redeploy needed */}
                 <div className="mt-4 p-4 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)]">
-                  <p className="text-xs font-semibold text-[var(--text)] mb-1">Quiz (optional)</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-semibold text-[var(--text)]">Quiz (optional)</p>
+                    {existingQuizCount > 0 && !removeQuiz && (
+                      <span className="mono text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--accent)' }}>
+                        {existingQuizCount} question{existingQuizCount !== 1 ? 's' : ''} attached
+                      </span>
+                    )}
+                    {removeQuiz && (
+                      <span className="mono text-[10px] px-2 py-0.5 rounded-full text-red-400" style={{ background: 'rgba(239,68,68,0.15)' }}>will be removed</span>
+                    )}
+                  </div>
                   <p className="mono text-[10px] text-[var(--muted)] mb-3">
-                    Upload a <span className="text-[var(--accent)]">.json</span> file named{' '}
-                    <span className="text-[var(--accent)]">{form.slug || 'post-slug'}.json</span>.
-                    After saving, place it in <span className="text-[var(--accent)]">public/quizzes/</span> and redeploy.
+                    Upload a <span className="text-[var(--accent)]">.json</span> file with your questions.
+                    It saves directly to this post — appears on the site immediately, no redeploy needed.
                   </p>
                   <input type="file" accept=".json,application/json"
-                    onChange={e => { const f = e.target.files?.[0] || null; setQuizFile(f); setQuizStatus(f ? `Selected: ${f.name}` : '') }}
+                    onChange={e => { const f = e.target.files?.[0] || null; setQuizFile(f); setRemoveQuiz(false); setQuizStatus(f ? `Selected: ${f.name}` : '') }}
                     className="block w-full text-xs text-[var(--muted)] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-[var(--border)] file:text-xs file:text-[var(--muted)] file:bg-[var(--bg)] cursor-pointer"
                   />
                   {quizStatus && (
                     <p className={`mono text-[10px] mt-2 ${quizStatus.startsWith('✓') ? 'text-green-400' : 'text-[var(--muted)]'}`}>{quizStatus}</p>
                   )}
+                  {existingQuizCount > 0 && !quizFile && (
+                    <button
+                      type="button"
+                      onClick={() => { setRemoveQuiz(r => !r); setQuizStatus('') }}
+                      className="mt-2 text-[10px] mono text-red-400 hover:text-red-300 transition-colors underline"
+                    >
+                      {removeQuiz ? 'Cancel removal' : 'Remove existing quiz'}
+                    </button>
+                  )}
+                  <details className="mt-3">
+                    <summary className="mono text-[10px] text-[var(--muted)] cursor-pointer hover:text-[var(--accent)] transition-colors">Show JSON format</summary>
+                    <pre className="mt-2 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] mono text-[10px] text-[var(--muted)] leading-relaxed whitespace-pre-wrap">{`{
+  "questions": [
+    {
+      "q": "Your question here?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "answer": 0,
+      "explain": "Optional explanation shown after answering."
+    }
+  ]
+}`}</pre>
+                  </details>
                 </div>
 
                 <div className="flex items-center gap-3 mt-5">
