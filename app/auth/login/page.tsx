@@ -17,10 +17,8 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     const supabase = createClient()
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
     if (authError) { setError(authError.message); setLoading(false); return }
-    if (!data.session) { setError('Login succeeded but no session was created. Please try again.'); setLoading(false); return }
-    // Hard navigation ensures auth cookies are sent with the next request
     window.location.href = '/admin'
   }
 

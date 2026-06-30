@@ -4,19 +4,19 @@
       "q": "Which AWS service provides scalable object storage?",
       "options": ["EC2", "RDS", "S3", "VPC"],
       "answer": 2,
-      "explain": "Amazon S3 (Simple Storage Service) is AWS's scalable object storage service used for storing any type of data."
+      "explain": "Amazon S3 (Simple Storage Service) is AWS's scalable object storage service."
     },
     {
       "q": "What does IaC stand for in DevOps?",
       "options": ["Internet as Code", "Infrastructure as Code", "Integration as Code", "Instance as Code"],
       "answer": 1,
-      "explain": "IaC (Infrastructure as Code) means managing and provisioning infrastructure through config files rather than manual processes."
+      "explain": "IaC means managing infrastructure through config files rather than manual processes."
     },
     {
       "q": "Which tool is used for container orchestration?",
       "options": ["Terraform", "Ansible", "Kubernetes", "Jenkins"],
       "answer": 2,
-      "explain": "Kubernetes (K8s) is the industry-standard open-source system for automating container deployment, scaling, and management."
+      "explain": "Kubernetes (K8s) is the industry-standard container orchestration platform."
     }
   ]
 }

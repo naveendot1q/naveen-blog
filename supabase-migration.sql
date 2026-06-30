@@ -89,3 +89,46 @@ VALUES (
   TRUE
 )
 ON CONFLICT (slug) DO NOTHING;
+
+-- ── 3. Reading tracker ─────────────────────────────────────
+-- Tracks scroll progress per reader per post per day.
+-- progress: 0.25=25%, 0.5=50%, 0.75=75%, 1.0=100%
+CREATE TABLE IF NOT EXISTS blog_reads (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  reader_email TEXT NOT NULL,
+  post_slug    TEXT NOT NULL,
+  read_date    DATE NOT NULL DEFAULT CURRENT_DATE,
+  progress     NUMERIC(3,2) NOT NULL DEFAULT 0
+               CHECK (progress >= 0 AND progress <= 1),
+  UNIQUE (reader_email, post_slug, read_date)
+);
+
+ALTER TABLE blog_reads ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Readers can insert own reads"  ON blog_reads;
+DROP POLICY IF EXISTS "Readers can update own reads"  ON blog_reads;
+DROP POLICY IF EXISTS "Readers can read own reads"    ON blog_reads;
+DROP POLICY IF EXISTS "Admin full access blog_reads"  ON blog_reads;
+
+-- Reader can only see/write their own rows
+CREATE POLICY "Readers can insert own reads"
+  ON blog_reads FOR INSERT
+  WITH CHECK (auth.email() = reader_email);
+
+CREATE POLICY "Readers can update own reads"
+  ON blog_reads FOR UPDATE
+  USING (auth.email() = reader_email)
+  WITH CHECK (auth.email() = reader_email);
+
+CREATE POLICY "Readers can read own reads"
+  ON blog_reads FOR SELECT
+  USING (auth.email() = reader_email);
+
+-- Admin sees everything
+CREATE POLICY "Admin full access blog_reads"
+  ON blog_reads FOR ALL
+  USING (auth.email() = 'naveenmeel10@gmail.com')
+  WITH CHECK (auth.email() = 'naveenmeel10@gmail.com');
+
+CREATE INDEX IF NOT EXISTS blog_reads_email_date_idx ON blog_reads (reader_email, read_date);
+CREATE INDEX IF NOT EXISTS blog_reads_slug_idx       ON blog_reads (post_slug);

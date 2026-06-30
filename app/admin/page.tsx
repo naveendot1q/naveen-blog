@@ -11,7 +11,8 @@ export default async function AdminPage() {
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'naveenmeel10@gmail.com'
   if (user.email !== adminEmail) redirect('/')
 
-  // Ensure admin always exists in blog_readers (auto-heal if deleted)
+  // Auto-heal: ensure admin always has an approved blog_readers row
+  // (handles case where Supabase user is deleted & re-created)
   await supabase
     .from('blog_readers')
     .upsert(
