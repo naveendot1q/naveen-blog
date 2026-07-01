@@ -8,12 +8,29 @@ async function getData() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    const [postsRes, readsRes] = await Promise.all([
-      supabase
+    // First try: fetch with quiz_data (works after migration is run)
+    // If column doesn't exist yet, Supabase returns error — catch and retry without it
+    let postsData: Record<string, unknown>[] = []
+    const postsWithQuiz = await supabase
+      .from('blog_posts')
+      .select('id, title, slug, excerpt, tags, created_at, updated_at, quiz_data')
+      .eq('published', true)
+      .order('created_at', { ascending: false })
+
+    if (!postsWithQuiz.error) {
+      postsData = (postsWithQuiz.data || []) as Record<string, unknown>[]
+    } else {
+      // Column not yet added — fall back without quiz_data
+      const postsBasic = await supabase
         .from('blog_posts')
-        .select('id, title, slug, excerpt, tags, created_at, updated_at, quiz_data')
+        .select('id, title, slug, excerpt, tags, created_at, updated_at')
         .eq('published', true)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+      postsData = (postsBasic.data || []) as Record<string, unknown>[]
+    }
+
+    const [, readsRes] = await Promise.all([
+      Promise.resolve(null),
       user?.email
         ? supabase
             .from('blog_reads')
@@ -28,7 +45,7 @@ async function getData() {
       activityMap[r.read_date] = (activityMap[r.read_date] || 0) + r.progress
     })
 
-    return { posts: postsRes.data || [], activityMap }
+    return { posts: postsData, activityMap }
   } catch {
     return { posts: [], activityMap: {} }
   }
