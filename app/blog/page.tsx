@@ -3,6 +3,17 @@ import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import BlogListClient from './BlogListClient'
 
+interface Post {
+  id: string
+  title: string
+  slug: string
+  excerpt: string
+  tags: string[]
+  created_at: string
+  updated_at?: string
+  quiz_data?: { questions: { q: string; options: string[]; answer: number; explain?: string }[] } | null
+}
+
 async function getData() {
   try {
     const supabase = await createClient()
@@ -10,7 +21,7 @@ async function getData() {
 
     // First try: fetch with quiz_data (works after migration is run)
     // If column doesn't exist yet, Supabase returns error — catch and retry without it
-    let postsData: Record<string, unknown>[] = []
+    let postsData: Post[] = []
     const postsWithQuiz = await supabase
       .from('blog_posts')
       .select('id, title, slug, excerpt, tags, created_at, updated_at, quiz_data')
@@ -18,7 +29,7 @@ async function getData() {
       .order('created_at', { ascending: false })
 
     if (!postsWithQuiz.error) {
-      postsData = (postsWithQuiz.data || []) as Record<string, unknown>[]
+      postsData = (postsWithQuiz.data || []) as Post[]
     } else {
       // Column not yet added — fall back without quiz_data
       const postsBasic = await supabase
@@ -26,7 +37,7 @@ async function getData() {
         .select('id, title, slug, excerpt, tags, created_at, updated_at')
         .eq('published', true)
         .order('created_at', { ascending: false })
-      postsData = (postsBasic.data || []) as Record<string, unknown>[]
+      postsData = (postsBasic.data || []) as Post[]
     }
 
     const [, readsRes] = await Promise.all([
