@@ -231,70 +231,123 @@ export default function BlogListClient({ posts, activityMap: serverMap }: Props)
         )}
       </div>
 
-      {/* ── FOLDER VIEW ── */}
+      {/* ── FOLDER VIEW — big folder tiles, open into post tiles ── */}
       {view === 'folders' && (
-        <div className="space-y-3">
-          {[...folders, ...(uncategorised.length > 0 ? [{ tag: 'uncategorised', posts: uncategorised }] : [])].map(({ tag, posts: folderPosts }) => {
-            const isOpen = openFolders.has(tag)
-            return (
-              <div key={tag} className="border border-[var(--border)] rounded-xl overflow-hidden">
-                {/* Folder header — clickable */}
-                <button
-                  onClick={() => toggleFolder(tag)}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-[var(--surface)] hover:bg-[var(--surface2)] transition-colors text-left"
-                >
-                  <div className="shrink-0">
-                    {isOpen
-                      ? <FolderOpen size={18} className="text-[var(--accent)]" />
-                      : <Folder size={18} className="text-[var(--accent)]" />
-                    }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="font-semibold text-[var(--text)] text-sm capitalize">{tag}</span>
-                    <span className="mono text-[10px] text-[var(--muted)] ml-2">
-                      {folderPosts.length} post{folderPosts.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <ChevronRight
-                    size={14}
-                    className={`text-[var(--muted)] transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-90' : ''}`}
-                  />
-                </button>
+        <div>
+          {folders.length === 0 && uncategorised.length === 0 ? (
+            <div className="py-16 text-center border border-[var(--border)] rounded-xl">
+              <p className="text-sm text-[var(--muted)]">No posts yet.</p>
+            </div>
+          ) : (
+            <>
+              {/* Folder tile grid */}
+              {openFolders.size === 0 || true ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                  {[...folders, ...(uncategorised.length > 0 ? [{ tag: 'uncategorised', posts: uncategorised }] : [])].map(({ tag, posts: folderPosts }) => {
+                    const isOpen = openFolders.has(tag)
+                    return (
+                      <button
+                        key={tag}
+                        onClick={() => toggleFolder(tag)}
+                        className={`group relative flex flex-col items-start p-6 rounded-2xl border-2 transition-all duration-200 text-left w-full ${
+                          isOpen
+                            ? 'border-[var(--accent)] bg-[var(--surface)]'
+                            : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)]'
+                        }`}
+                      >
+                        {/* Folder icon — large */}
+                        <div className="mb-4">
+                          {isOpen
+                            ? <FolderOpen size={40} className="text-[var(--accent)]" />
+                            : <Folder size={40} className="text-[var(--muted)] group-hover:text-[var(--accent)] transition-colors" />
+                          }
+                        </div>
 
-                {/* Folder contents — tile grid */}
-                {isOpen && (
-                  <div className="border-t border-[var(--border)] p-4 bg-[var(--bg)]">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {/* Folder name */}
+                        <p className={`font-bold text-base capitalize leading-tight mb-1 transition-colors ${
+                          isOpen ? 'text-[var(--accent)]' : 'text-[var(--text)] group-hover:text-[var(--accent)]'
+                        }`}>
+                          {tag}
+                        </p>
+
+                        {/* Post count */}
+                        <p className="mono text-xs text-[var(--muted)]">
+                          {folderPosts.length} post{folderPosts.length !== 1 ? 's' : ''}
+                        </p>
+
+                        {/* Preview of first 2 post titles */}
+                        <div className="mt-3 pt-3 border-t border-[var(--border)] w-full space-y-1">
+                          {folderPosts.slice(0, 2).map(p => (
+                            <p key={p.id} className="mono text-[10px] text-[var(--muted)] truncate">
+                              · {p.title}
+                            </p>
+                          ))}
+                          {folderPosts.length > 2 && (
+                            <p className="mono text-[10px] text-[var(--muted)] opacity-50">
+                              +{folderPosts.length - 2} more
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Open/close indicator */}
+                        <ChevronRight
+                          size={16}
+                          className={`absolute top-4 right-4 text-[var(--muted)] transition-transform duration-200 ${isOpen ? 'rotate-90 text-[var(--accent)]' : 'group-hover:text-[var(--accent)]'}`}
+                        />
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
+
+              {/* Expanded folder contents */}
+              {[...folders, ...(uncategorised.length > 0 ? [{ tag: 'uncategorised', posts: uncategorised }] : [])].map(({ tag, posts: folderPosts }) => {
+                if (!openFolders.has(tag)) return null
+                return (
+                  <div key={`open-${tag}`} className="mb-8">
+                    {/* Section header */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <FolderOpen size={18} className="text-[var(--accent)] shrink-0" />
+                      <h2 className="font-bold text-[var(--text)] text-base capitalize">{tag}</h2>
+                      <span className="mono text-xs text-[var(--muted)]">
+                        {folderPosts.length} post{folderPosts.length !== 1 ? 's' : ''}
+                      </span>
+                      <button
+                        onClick={() => toggleFolder(tag)}
+                        className="ml-auto mono text-[10px] text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
+                      >
+                        close ×
+                      </button>
+                    </div>
+
+                    {/* Post tiles */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {folderPosts.map(post => (
                         <Link
                           key={post.id}
                           href={`/blog/${post.slug}`}
-                          className="group flex flex-col p-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-all duration-200"
+                          className="group flex flex-col p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-all duration-200"
                         >
-                          {/* Other tags (not the current folder tag) */}
                           {post.tags?.filter(t => t !== tag).length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-2">
+                            <div className="flex flex-wrap gap-1.5 mb-3">
                               {post.tags.filter(t => t !== tag).slice(0, 2).map(t => (
                                 <span key={t} className="tag">{t}</span>
                               ))}
                             </div>
                           )}
-
                           <h3 className="font-semibold text-[var(--text)] text-sm group-hover:text-[var(--accent)] transition-colors leading-snug mb-2 flex-1">
                             {post.title}
                           </h3>
-
-                          <p className="text-xs text-[var(--muted)] leading-relaxed line-clamp-2 mb-3">
+                          <p className="text-xs text-[var(--muted)] leading-relaxed line-clamp-3 mb-4">
                             {post.excerpt}
                           </p>
-
-                          <div className="flex items-center justify-between pt-2 border-t border-[var(--border)] mt-auto">
+                          <div className="flex items-center justify-between pt-3 border-t border-[var(--border)] mt-auto">
                             <span className="mono text-[10px] text-[var(--muted)] flex items-center gap-1">
-                              <Calendar size={9} />
+                              <Calendar size={10} />
                               {new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </span>
                             <span className="mono text-[10px] text-[var(--muted)] flex items-center gap-1">
-                              <Clock size={9} />
+                              <Clock size={10} />
                               {readTime(post.excerpt)}
                             </span>
                           </div>
@@ -303,15 +356,9 @@ export default function BlogListClient({ posts, activityMap: serverMap }: Props)
                       ))}
                     </div>
                   </div>
-                )}
-              </div>
-            )
-          })}
-
-          {folders.length === 0 && uncategorised.length === 0 && (
-            <div className="py-16 text-center border border-[var(--border)] rounded-xl">
-              <p className="text-sm text-[var(--muted)]">No posts yet.</p>
-            </div>
+                )
+              })}
+            </>
           )}
         </div>
       )}
