@@ -109,15 +109,34 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
 
     try {
       const sb = createClient()
+      let savedId = form.id
       if (mode === 'new') {
         const { data, error: err } = await sb.from('blog_posts').insert({ ...payload, created_at: new Date().toISOString() }).select().single()
         if (err) throw err
+        savedId = data.id
         setPosts(p => [data, ...p]); setSuccess('Post created!')
       } else {
         const { data, error: err } = await sb.from('blog_posts').update(payload).eq('id', form.id).select().single()
         if (err) throw err
         setPosts(p => p.map(x => x.id === form.id ? { ...x, ...data } : x)); setSuccess('Post updated!')
       }
+
+      // Best-effort push to GitHub — Supabase is the source of truth for
+      // the live site, so a GitHub hiccup here shouldn't undo the save.
+      try {
+        const pushRes = await fetch('/api/push-to-github', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postId: savedId }),
+        })
+        if (!pushRes.ok) {
+          const { error: pushErr } = await pushRes.json().catch(() => ({ error: 'unknown error' }))
+          setSuccess(s => `${s} (saved, but GitHub push failed: ${pushErr})`)
+        }
+      } catch {
+        setSuccess(s => `${s} (saved, but couldn't reach GitHub to push)`)
+      }
+
       setTimeout(() => { setMode('list'); resetForm(); router.refresh() }, 800)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

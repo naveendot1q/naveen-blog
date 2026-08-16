@@ -4,5 +4,11 @@
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "devCommand": "next dev",
-  "regions": ["bom1"]
+  "regions": ["bom1"],
+  "crons": [
+    {
+      "path": "/api/sync-github",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
