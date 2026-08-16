@@ -1,13 +1,16 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import MarkdownRenderer from '@/components/MarkdownRenderer'
 import {
   Plus, Edit2, Trash2, Eye, EyeOff, LogOut,
   Loader2, X, Check, ArrowLeft, Users, FileText,
-  UserCheck, UserX, Shield
+  UserCheck, UserX, Shield,
+  Bold, Italic, Code, List, ListOrdered, Quote,
+  Link2, Image as ImageIcon, Terminal, Maximize2, Minimize2
 } from 'lucide-react'
 
 interface Post {
@@ -26,6 +29,19 @@ function slugify(t: string) {
   return t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
 
+function ToolbarButton({ onClick, title, children }: { onClick: () => void; title: string; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} title={title}
+      className="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--bg)] transition-colors">
+      {children}
+    </button>
+  )
+}
+
+function ToolbarDivider() {
+  return <div className="w-px h-5 bg-[var(--border)] mx-1" />
+}
+
 type Tab = 'posts' | 'readers'
 
 export default function AdminClient({ posts: initialPosts, readers: initialReaders, userEmail }: Props) {
@@ -42,6 +58,9 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
   const [existingQuizCount, setExistingQuizCount] = useState<number>(0)
   const [removeQuiz, setRemoveQuiz] = useState(false)
   const [form, setForm] = useState({ id: '', title: '', slug: '', excerpt: '', content: '', tags: '', published: false })
+  const [contentView, setContentView] = useState<'write' | 'preview'>('write')
+  const [fullscreen, setFullscreen] = useState(false)
+  const contentRef = useRef<HTMLTextAreaElement>(null)
 
   // Reader add form
   const [newReaderEmail, setNewReaderEmail] = useState('')
@@ -51,7 +70,7 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null)
 
-  const resetForm = () => { setForm({ id: '', title: '', slug: '', excerpt: '', content: '', tags: '', published: false }); setError(null); setSuccess(null); setQuizFile(null); setQuizStatus(''); setRemoveQuiz(false); setExistingQuizCount(0) }
+  const resetForm = () => { setForm({ id: '', title: '', slug: '', excerpt: '', content: '', tags: '', published: false }); setError(null); setSuccess(null); setQuizFile(null); setQuizStatus(''); setRemoveQuiz(false); setExistingQuizCount(0); setContentView('write'); setFullscreen(false) }
 
   const startEdit = (post: Post) => {
     createClient().from('blog_posts').select('*').eq('id', post.id).single().then(({ data }) => {
@@ -152,6 +171,102 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
   }
 
   const handleLogout = async () => { const sb = createClient(); await sb.auth.signOut(); router.push('/'); router.refresh() }
+
+  // Lock page scroll while the content editor is in fullscreen mode
+  useEffect(() => {
+    document.body.style.overflow = fullscreen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [fullscreen])
+
+  // ── Markdown toolbar helpers — plain textarea selection manipulation,
+  //    no editor library needed since posts are stored as raw Markdown ──
+  function wrapSelection(before: string, after: string, placeholder: string) {
+    const el = contentRef.current
+    if (!el) return
+    const { selectionStart: start, selectionEnd: end, value } = el
+    const selected = value.slice(start, end) || placeholder
+    const newValue = value.slice(0, start) + before + selected + after + value.slice(end)
+    setForm(f => ({ ...f, content: newValue }))
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(start + before.length, start + before.length + selected.length)
+    })
+  }
+
+  function prefixLines(fn: (line: string, index: number) => string) {
+    const el = contentRef.current
+    if (!el) return
+    const { selectionStart: start, selectionEnd: end, value } = el
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1
+    const searchFrom = end > start ? end - 1 : end
+    const searchEnd = value.indexOf('\n', searchFrom)
+    const lineEnd = searchEnd === -1 ? value.length : searchEnd
+    const newBlock = value.slice(lineStart, lineEnd).split('\n').map(fn).join('\n')
+    const newValue = value.slice(0, lineStart) + newBlock + value.slice(lineEnd)
+    setForm(f => ({ ...f, content: newValue }))
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(lineStart, lineStart + newBlock.length)
+    })
+  }
+
+  function applyHeading(level: string) {
+    const el = contentRef.current
+    if (!el || !level) return
+    const { selectionStart: start, value } = el
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1
+    const searchEnd = value.indexOf('\n', start)
+    const lineEnd = searchEnd === -1 ? value.length : searchEnd
+    const stripped = value.slice(lineStart, lineEnd).replace(/^#{1,6}\s*/, '')
+    const newLine = '#'.repeat(Number(level)) + ' ' + stripped
+    const newValue = value.slice(0, lineStart) + newLine + value.slice(lineEnd)
+    setForm(f => ({ ...f, content: newValue }))
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(lineStart + newLine.length, lineStart + newLine.length)
+    })
+  }
+
+  function insertLink() {
+    const el = contentRef.current
+    if (!el) return
+    const { selectionStart: start, selectionEnd: end, value } = el
+    const text = value.slice(start, end) || 'link text'
+    const insertion = `[${text}](url)`
+    setForm(f => ({ ...f, content: value.slice(0, start) + insertion + value.slice(end) }))
+    requestAnimationFrame(() => {
+      el.focus()
+      const urlStart = start + text.length + 3
+      el.setSelectionRange(urlStart, urlStart + 3)
+    })
+  }
+
+  function insertImage() {
+    const el = contentRef.current
+    if (!el) return
+    const { selectionStart: start, selectionEnd: end, value } = el
+    const text = value.slice(start, end) || 'alt text'
+    const insertion = `![${text}](image-url)`
+    setForm(f => ({ ...f, content: value.slice(0, start) + insertion + value.slice(end) }))
+    requestAnimationFrame(() => {
+      el.focus()
+      const urlStart = start + text.length + 4
+      el.setSelectionRange(urlStart, urlStart + 9)
+    })
+  }
+
+  function insertCodeBlock() {
+    const el = contentRef.current
+    if (!el) return
+    const { selectionStart: start, selectionEnd: end, value } = el
+    const selected = value.slice(start, end) || 'code here'
+    const insertion = '```\n' + selected + '\n```'
+    setForm(f => ({ ...f, content: value.slice(0, start) + insertion + value.slice(end) }))
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(start + 4, start + 4 + selected.length)
+    })
+  }
 
   return (
     <div className="min-h-screen pt-20 px-6 pb-12">
@@ -273,16 +388,74 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
                       placeholder="A brief description..."
                       className="w-full px-4 py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-sm placeholder:text-[var(--muted)] placeholder:opacity-40 focus:outline-none focus:border-[var(--accent)] transition-colors resize-none" />
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs text-[var(--muted)] font-medium">Content <span className="opacity-50 font-normal">(Markdown)</span></label>
-                      <span className="mono text-[10px] text-[var(--muted)] opacity-60">
-                        {form.content.trim() ? form.content.trim().split(/\s+/).length : 0} words
-                      </span>
+                  <div className={fullscreen ? 'fixed inset-0 z-[70] bg-[var(--bg)] p-6 overflow-y-auto' : ''}>
+                    <div className={fullscreen ? 'max-w-4xl mx-auto' : ''}>
+                      <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+                        <label className="text-xs text-[var(--muted)] font-medium">Content <span className="opacity-50 font-normal">(Markdown)</span></label>
+                        <div className="flex items-center gap-3">
+                          <span className="mono text-[10px] text-[var(--muted)] opacity-60">
+                            {form.content.trim() ? form.content.trim().split(/\s+/).length : 0} words
+                          </span>
+                          <div className="flex items-center gap-0.5 p-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+                            <button type="button" onClick={() => setContentView('write')}
+                              className={`px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase tracking-wide transition-colors ${contentView === 'write' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}>
+                              Write
+                            </button>
+                            <button type="button" onClick={() => setContentView('preview')}
+                              className={`px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase tracking-wide transition-colors ${contentView === 'preview' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}>
+                              Preview
+                            </button>
+                          </div>
+                          <button type="button" onClick={() => setFullscreen(f => !f)} title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                            className="w-6 h-6 flex items-center justify-center rounded-md border border-[var(--border)] text-[var(--muted)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors">
+                            {fullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Formatting toolbar — mirrors a classic post-editor toolbar,
+                          inserts/wraps Markdown syntax at the cursor */}
+                      {contentView === 'write' && (
+                        <div className="flex items-center flex-wrap gap-1 mb-2 p-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                          <select
+                            onChange={(e) => { applyHeading(e.target.value); e.target.value = '' }}
+                            defaultValue=""
+                            className="mono text-[11px] px-2 py-1.5 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] cursor-pointer mr-1"
+                          >
+                            <option value="">Paragraph</option>
+                            <option value="1">Heading 1</option>
+                            <option value="2">Heading 2</option>
+                            <option value="3">Heading 3</option>
+                          </select>
+                          <ToolbarDivider />
+                          <ToolbarButton onClick={() => wrapSelection('**', '**', 'bold text')} title="Bold"><Bold size={13} /></ToolbarButton>
+                          <ToolbarButton onClick={() => wrapSelection('*', '*', 'italic text')} title="Italic"><Italic size={13} /></ToolbarButton>
+                          <ToolbarButton onClick={() => wrapSelection('`', '`', 'code')} title="Inline code"><Code size={13} /></ToolbarButton>
+                          <ToolbarDivider />
+                          <ToolbarButton onClick={() => prefixLines(line => `- ${line}`)} title="Bullet list"><List size={13} /></ToolbarButton>
+                          <ToolbarButton onClick={() => prefixLines((line, i) => `${i + 1}. ${line}`)} title="Numbered list"><ListOrdered size={13} /></ToolbarButton>
+                          <ToolbarButton onClick={() => prefixLines(line => `> ${line}`)} title="Blockquote"><Quote size={13} /></ToolbarButton>
+                          <ToolbarDivider />
+                          <ToolbarButton onClick={insertLink} title="Link"><Link2 size={13} /></ToolbarButton>
+                          <ToolbarButton onClick={insertImage} title="Image"><ImageIcon size={13} /></ToolbarButton>
+                          <ToolbarButton onClick={insertCodeBlock} title="Code block"><Terminal size={13} /></ToolbarButton>
+                        </div>
+                      )}
+
+                      {contentView === 'write' ? (
+                        <textarea ref={contentRef} value={form.content} onChange={(e) => setForm(f => ({ ...f, content: e.target.value }))}
+                          placeholder={'# My Post\n\nWrite in **Markdown**...'}
+                          className={`w-full px-10 py-10 rounded-2xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] mono text-[15px] placeholder:text-[var(--muted)] placeholder:opacity-40 focus:outline-none focus:border-[var(--accent)] transition-colors resize-y leading-[1.9] shadow-sm ${fullscreen ? 'min-h-[calc(100vh-140px)]' : 'min-h-[70vh]'}`} />
+                      ) : (
+                        <div className={`w-full px-10 py-10 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm overflow-y-auto ${fullscreen ? 'min-h-[calc(100vh-140px)]' : 'min-h-[70vh]'}`}>
+                          {form.content.trim() ? (
+                            <MarkdownRenderer content={form.content} />
+                          ) : (
+                            <p className="text-sm text-[var(--muted)] opacity-50 italic">Nothing to preview yet — write something first.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <textarea value={form.content} onChange={(e) => setForm(f => ({ ...f, content: e.target.value }))}
-                      placeholder={'# My Post\n\nWrite in **Markdown**...'}
-                      className="w-full min-h-[70vh] px-10 py-10 rounded-2xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] mono text-[15px] placeholder:text-[var(--muted)] placeholder:opacity-40 focus:outline-none focus:border-[var(--accent)] transition-colors resize-y leading-[1.9] shadow-sm" />
                   </div>
                 </div>
                 {/* Quiz JSON upload — saves directly to the post, no redeploy needed */}

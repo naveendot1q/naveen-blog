@@ -25,18 +25,33 @@ export default function Navbar() {
   const [hidden, setHidden] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const pathname = usePathname()
-  const lastScrollY = typeof window !== 'undefined' ? { current: 0 } : { current: 0 }
 
   const isBlogPage = pathname?.startsWith('/blog') || pathname?.startsWith('/admin') || pathname?.startsWith('/auth')
   const links = isBlogPage ? blogLinks : homeLinks
+
+  // The actual article-reading view — TOC and WriterProfile are sticky
+  // against the navbar's height (top-14), so if the navbar hides while
+  // scrolling it leaves a dead gap above them. Keep it pinned here.
+  const isBlogPostPage = !!pathname && pathname.startsWith('/blog/') &&
+    !pathname.startsWith('/blog/login') && !pathname.startsWith('/blog/register')
+
+  // If navigation lands on a post page while the navbar was already
+  // hidden (e.g. hidden from scrolling on a previous page), un-hide it
+  // immediately instead of waiting for the next scroll event.
+  useEffect(() => {
+    if (isBlogPostPage) setHidden(false)
+  }, [isBlogPostPage])
 
   useEffect(() => {
     let lastY = 0
     const onScroll = () => {
       const y = window.scrollY
       setScrolled(y > 20)
-      // Hide when scrolling down past 80px, show when scrolling up
-      if (y > 80) {
+      if (isBlogPostPage) {
+        // Pinned while reading — never hide, regardless of direction.
+        setHidden(false)
+      } else if (y > 80) {
+        // Hide when scrolling down past 80px, show when scrolling up
         setHidden(y > lastY)
       } else {
         setHidden(false)
@@ -45,7 +60,7 @@ export default function Navbar() {
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  }, [isBlogPostPage])
 
   return (
     <nav
