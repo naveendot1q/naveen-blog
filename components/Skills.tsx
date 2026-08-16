@@ -41,6 +41,11 @@ const skillGroups = [
     prefix: 'vcs',
     items: ['Git / GitHub', 'Azure Repos', 'JIRA'],
   },
+  {
+    label: 'Operating Systems',
+    prefix: 'os',
+    items: ['Linux (Ubuntu, CentOS)', 'Windows Server', 'Windows 10/11'],
+  },
 ]
 
 export default function Skills() {
@@ -71,18 +76,6 @@ export default function Skills() {
               </ul>
             </div>
           ))}
-        </div>
-
-        <div className="mt-5 p-5 rounded-2xl border border-[var(--border)] bg-[var(--bg)]">
-          <p className="mono text-[10px] text-[var(--muted)] tracking-widest uppercase mb-3">operating systems</p>
-          <div className="flex flex-wrap gap-2">
-            {['Linux (Ubuntu, CentOS)', 'Windows Server', 'Windows 10/11'].map(os => (
-              <span key={os}
-                className="mono text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-default">
-                {os}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
     </section>

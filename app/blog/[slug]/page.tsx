@@ -2,11 +2,11 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Calendar, Clock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { requireBlogReader } from '@/lib/auth'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import TableOfContents from '@/components/TableOfContents'
 import WriterProfile from '@/components/WriterProfile'
 import ReadingTracker from '@/components/ReadingTracker'
-import SignalMeter from '@/components/SignalMeter'
 import BlogQuiz from '@/components/BlogQuiz'
 import { extractHeadings } from '@/lib/slugifyHeading'
 
@@ -68,6 +68,14 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
+
+  // Must run before getPost() — getPost() has its own try/catch that
+  // would otherwise swallow the redirect() this throws. This is the
+  // actual content gate: it runs independently of middleware, so a
+  // post can never be returned to a request that isn't an authenticated
+  // admin or an approved reader.
+  await requireBlogReader(`/blog/${slug}`)
+
   const post = await getPost(slug)
   if (!post) notFound()
 
@@ -81,7 +89,9 @@ export default async function BlogPostPage({
   return (
     <div className="min-h-screen pt-14">
       {/*
-        Three-column layout on xl+: TOC 20% | Article 60% | Profile 20%
+        Three-column layout on xl+: TOC 20% | Article 55% | Profile 25%
+        (TOC and Profile are fixed-width asides; the article is flex-1
+        and fills whatever's left, so it tracks automatically.)
         All three columns are the same height (full viewport minus navbar).
         On screens below xl: only the article shows, full width.
       */}
@@ -93,29 +103,20 @@ export default async function BlogPostPage({
           {/* ── LEFT: TOC (20%) ── */}
           <TableOfContents headings={headings} />
 
-          {/* ── CENTRE: Article (60%) ── */}
+          {/* ── CENTRE: Article (55%) ── */}
           <article
             id="blog-article"
-            className="flex-1 min-w-0 xl:border-x xl:border-[var(--border)]"
+            className="flex-1 min-w-0 px-8 pt-4 pb-8 xl:border-x xl:border-[var(--border)]"
           >
             <ReadingTracker postSlug={post.slug} />
-            <SignalMeter />
 
-            <div className="px-8 pt-4 pb-8">
             <header className="mb-10">
               <Link
                 href="/blog"
-                className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--signal)] transition-colors font-medium mb-5 block"
+                className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors font-medium mb-5 block"
               >
-                <ArrowLeft size={13} /> All entries
+                <ArrowLeft size={13} /> All posts
               </Link>
-
-              <div className="flex items-center gap-2.5 mb-5">
-                <span className="status-dot pulse" />
-                <span className="mono text-[10px] text-[var(--signal)] tracking-[0.2em] uppercase">
-                  log entry · published
-                </span>
-              </div>
 
               {post.tags?.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-5">
@@ -124,7 +125,7 @@ export default async function BlogPostPage({
                   ))}
                 </div>
               )}
-              <h1 className="font-display text-3xl md:text-4xl font-bold text-[var(--text)] mb-4 leading-tight">
+              <h1 className="text-3xl md:text-4xl font-bold text-[var(--text)] mb-4 leading-tight">
                 {post.title}
               </h1>
               <div className="flex items-center gap-5 text-xs text-[var(--muted)] mono">
@@ -140,7 +141,7 @@ export default async function BlogPostPage({
                 </span>
               </div>
               {post.excerpt && (
-                <p className="mt-5 text-[var(--muted)] text-base leading-relaxed border-l-2 border-[var(--signal)] pl-4">
+                <p className="mt-5 text-[var(--muted)] text-base leading-relaxed border-l-2 border-[var(--accent)] pl-4">
                   {post.excerpt}
                 </p>
               )}
@@ -157,12 +158,12 @@ export default async function BlogPostPage({
                   {prevPost ? (
                     <Link
                       href={`/blog/${prevPost.slug}`}
-                      className="group flex flex-col gap-2 p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--signal)] transition-all h-full"
+                      className="group flex flex-col gap-2 p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-all h-full"
                     >
                       <div className="flex items-center gap-1.5 text-[10px] mono text-[var(--muted)] uppercase tracking-widest">
                         <ArrowLeft size={10} /> Previous
                       </div>
-                      <p className="font-semibold text-sm text-[var(--text)] group-hover:text-[var(--signal)] transition-colors leading-snug">
+                      <p className="font-semibold text-sm text-[var(--text)] group-hover:text-[var(--accent)] transition-colors leading-snug">
                         {prevPost.title}
                       </p>
                       <div className="flex flex-wrap gap-1 mt-auto pt-1">
@@ -181,12 +182,12 @@ export default async function BlogPostPage({
                   {nextPost ? (
                     <Link
                       href={`/blog/${nextPost.slug}`}
-                      className="group flex flex-col gap-2 p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--signal)] transition-all h-full sm:items-end sm:text-right"
+                      className="group flex flex-col gap-2 p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-all h-full sm:items-end sm:text-right"
                     >
                       <div className="flex items-center justify-end gap-1.5 text-[10px] mono text-[var(--muted)] uppercase tracking-widest">
                         Next <ArrowRight size={10} />
                       </div>
-                      <p className="font-semibold text-sm text-[var(--text)] group-hover:text-[var(--signal)] transition-colors leading-snug">
+                      <p className="font-semibold text-sm text-[var(--text)] group-hover:text-[var(--accent)] transition-colors leading-snug">
                         {nextPost.title}
                       </p>
                       <div className="flex flex-wrap gap-1 justify-end mt-auto pt-1">
@@ -204,10 +205,9 @@ export default async function BlogPostPage({
               </div>
             )}
             <BlogQuiz quizData={post.quiz_data ?? null} />
-            </div>
           </article>
 
-          {/* ── RIGHT: Writer profile (20%) ── */}
+          {/* ── RIGHT: Writer profile (25%) ── */}
           <WriterProfile />
 
         </div>

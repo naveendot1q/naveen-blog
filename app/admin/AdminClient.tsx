@@ -155,7 +155,7 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
 
   return (
     <div className="min-h-screen pt-20 px-6 pb-12">
-      <div className="max-w-5xl mx-auto">
+      <div className={`mx-auto transition-all duration-300 ${mode === 'new' || mode === 'edit' ? 'max-w-6xl' : 'max-w-5xl'}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -274,10 +274,15 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
                       className="w-full px-4 py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-sm placeholder:text-[var(--muted)] placeholder:opacity-40 focus:outline-none focus:border-[var(--accent)] transition-colors resize-none" />
                   </div>
                   <div>
-                    <label className="text-xs text-[var(--muted)] font-medium block mb-1.5">Content <span className="opacity-50 font-normal">(Markdown)</span></label>
-                    <textarea value={form.content} onChange={(e) => setForm(f => ({ ...f, content: e.target.value }))} rows={22}
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs text-[var(--muted)] font-medium">Content <span className="opacity-50 font-normal">(Markdown)</span></label>
+                      <span className="mono text-[10px] text-[var(--muted)] opacity-60">
+                        {form.content.trim() ? form.content.trim().split(/\s+/).length : 0} words
+                      </span>
+                    </div>
+                    <textarea value={form.content} onChange={(e) => setForm(f => ({ ...f, content: e.target.value }))}
                       placeholder={'# My Post\n\nWrite in **Markdown**...'}
-                      className="w-full px-4 py-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] mono text-sm placeholder:text-[var(--muted)] placeholder:opacity-40 focus:outline-none focus:border-[var(--accent)] transition-colors resize-y leading-relaxed" />
+                      className="w-full min-h-[70vh] px-10 py-10 rounded-2xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] mono text-[15px] placeholder:text-[var(--muted)] placeholder:opacity-40 focus:outline-none focus:border-[var(--accent)] transition-colors resize-y leading-[1.9] shadow-sm" />
                   </div>
                 </div>
                 {/* Quiz JSON upload — saves directly to the post, no redeploy needed */}

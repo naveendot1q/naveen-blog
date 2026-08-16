@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { requireBlogReader } from '@/lib/auth'
 import BlogListClient from './BlogListClient'
 
 interface Post {
@@ -63,23 +64,24 @@ async function getData() {
 }
 
 export default async function BlogPage() {
+  // Must run before getData() and outside its try/catch — redirect()
+  // throws, and a surrounding catch would otherwise swallow it and
+  // silently render an empty list instead of sending the user to login.
+  await requireBlogReader('/blog')
+
   const { posts, activityMap } = await getData()
 
   return (
     <div className="min-h-screen pt-20">
       <div className="max-w-5xl mx-auto px-6 py-16">
         <div className="mb-10">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--signal)] transition-colors mb-8 font-medium">
+          <Link href="/" className="inline-flex items-center gap-2 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors mb-8 font-medium">
             <ArrowLeft size={13} /> Back home
           </Link>
-          <div className="flex items-center gap-2.5 mb-3">
-            <span className="status-dot pulse" />
-            <p className="mono text-xs text-[var(--signal)] tracking-[0.3em] uppercase">log · live</p>
-          </div>
-          <h1 className="font-display text-4xl font-bold text-[var(--text)] mb-2">Signal Log</h1>
-          <p className="text-[var(--muted)] text-sm max-w-xl">
-            {posts.length} entr{posts.length === 1 ? 'y' : 'ies'} on cloud infrastructure, networking, and DevOps —
-            filed as they happen.
+          <p className="mono text-xs text-[var(--accent)] tracking-[0.3em] uppercase mb-2">~/blog</p>
+          <h1 className="text-4xl font-bold text-[var(--text)] mb-2">Writing</h1>
+          <p className="text-[var(--muted)] text-sm">
+            Thoughts on cloud infrastructure, networking, DevOps, and the occasional rabbit hole.
           </p>
         </div>
 

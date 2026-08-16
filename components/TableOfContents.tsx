@@ -82,24 +82,22 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
   return (
     <aside className="hidden xl:flex xl:flex-col w-[20%] shrink-0 self-start sticky top-14 h-[calc(100vh-56px)]">
       {/* Header — flush to top */}
-      <div className="px-4 py-3 border-b border-[var(--border)] flex items-center gap-2">
-        <span className="status-dot" />
-        <p className="mono text-[11px] text-[var(--muted)] tracking-[0.2em] uppercase font-semibold">
-          traceroute
+      <div className="px-4 py-3 border-b border-[var(--border)]">
+        <p className="mono text-[11px] text-[var(--muted)] tracking-[0.25em] uppercase font-semibold">
+          On this page
         </p>
       </div>
 
       {/* Scrollable nav — auto-scrolls to keep active item visible */}
       <div
         ref={tocRef}
-        className="flex-1 overflow-y-auto py-4 px-3 relative"
+        className="flex-1 overflow-y-auto py-3 px-3"
         style={{ scrollBehavior: 'smooth' }}
       >
-        <div className="hop-line" />
-        <nav className="space-y-1 relative">
-          {headings.map((h, i) => {
+        <nav className="space-y-0.5">
+          {headings.map((h) => {
             const isActive = activeId === h.id
-            const indent = h.level === 3 ? 'ml-3' : h.level >= 4 ? 'ml-6' : ''
+            const indent = h.level === 3 ? 'pl-4' : h.level >= 4 ? 'pl-7' : 'pl-0'
 
             return (
               <button
@@ -107,19 +105,26 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
                 data-id={h.id}
                 onClick={() => handleClick(h.id)}
                 className={[
-                  'w-full text-left flex items-center gap-2.5 py-1 pr-2 group',
+                  'w-full text-left flex items-start gap-2.5 py-1.5 pr-2 rounded-md transition-all duration-200 group',
                   indent,
+                  isActive
+                    ? 'text-[var(--accent)]'
+                    : 'text-[var(--text)] hover:text-[var(--accent)]',
                 ].join(' ')}
               >
-                {/* Hop number */}
-                <span className={`hop-num ${isActive ? 'active' : ''}`}>
-                  {String(i + 1).padStart(2, '0')}
-                </span>
+                {/* Dot indicator */}
+                <span className={[
+                  'shrink-0 rounded-full mt-[7px] transition-all duration-200',
+                  h.level <= 2 ? 'w-[6px] h-[6px]' : 'w-1 h-1',
+                  isActive
+                    ? 'bg-[var(--accent)] scale-125'
+                    : 'bg-[var(--border)] group-hover:bg-[var(--muted)]',
+                ].join(' ')} />
                 <span className={[
                   'leading-snug transition-colors duration-200',
-                  h.level === 1 ? 'text-sm font-semibold' :
-                  h.level === 2 ? 'text-[13px] font-medium' : 'text-xs',
-                  isActive ? 'text-[var(--signal)]' : 'text-[var(--text)] group-hover:text-[var(--signal)]',
+                  h.level === 1 ? 'text-sm font-bold' :
+                  h.level === 2 ? 'text-sm font-semibold' : 'text-xs font-medium',
+                  isActive ? 'text-[var(--accent)]' : '',
                 ].join(' ')}>
                   {h.text}
                 </span>
@@ -131,8 +136,8 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
 
       {/* Footer — flush to bottom */}
       <div className="px-4 py-3 border-t border-[var(--border)]">
-        <p className="mono text-[9px] text-[var(--muted)] opacity-50 tracking-widest uppercase">
-          {headings.length} hop{headings.length !== 1 ? 's' : ''} to destination
+        <p className="mono text-[9px] text-[var(--muted)] opacity-40 tracking-widest uppercase">
+          scroll to navigate
         </p>
       </div>
     </aside>
