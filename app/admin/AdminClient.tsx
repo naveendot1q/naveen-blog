@@ -29,10 +29,10 @@ function slugify(t: string) {
   return t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
 
-function ToolbarButton({ onClick, title, children }: { onClick: () => void; title: string; children: React.ReactNode }) {
+function ToolbarButton({ onClick, title, children, disabled }: { onClick: () => void; title: string; children: React.ReactNode; disabled?: boolean }) {
   return (
-    <button type="button" onClick={onClick} title={title}
-      className="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--bg)] transition-colors">
+    <button type="button" onClick={onClick} title={title} disabled={disabled}
+      className="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
       {children}
     </button>
   )
@@ -60,7 +60,9 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
   const [form, setForm] = useState({ id: '', title: '', slug: '', excerpt: '', content: '', tags: '', published: false })
   const [contentView, setContentView] = useState<'write' | 'preview'>('write')
   const [fullscreen, setFullscreen] = useState(false)
+  const [imageUploading, setImageUploading] = useState(false)
   const contentRef = useRef<HTMLTextAreaElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   // Reader add form
   const [newReaderEmail, setNewReaderEmail] = useState('')
@@ -260,18 +262,83 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
     })
   }
 
-  function insertImage() {
-    const el = contentRef.current
-    if (!el) return
-    const { selectionStart: start, selectionEnd: end, value } = el
-    const text = value.slice(start, end) || 'alt text'
-    const insertion = `![${text}](image-url)`
-    setForm(f => ({ ...f, content: value.slice(0, start) + insertion + value.slice(end) }))
-    requestAnimationFrame(() => {
-      el.focus()
-      const urlStart = start + text.length + 4
-      el.setSelectionRange(urlStart, urlStart + 9)
+  // ── Image upload — gets a signed URL from the server, then uploads
+  //    the actual file bytes straight from the browser to Supabase
+  //    Storage. That's deliberate: Vercel functions cap request bodies
+  //    at 4.5MB, so routing the file itself through an API route would
+  //    fail on plenty of real screenshots/photos. Only the tiny
+  //    filename/size JSON goes through the server; the file goes
+  //    directly to Storage using a token scoped to that one upload. ──
+  async function uploadImageFile(file: File): Promise<string> {
+    const initRes = await fetch('/api/upload-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: file.name,
+        contentType: file.type,
+        size: file.size,
+        folder: form.slug || slugify(form.title),
+      }),
     })
+    const init = await initRes.json()
+    if (!initRes.ok) throw new Error(init.error || 'Could not start upload')
+
+    const sb = createClient()
+    const { error: upErr } = await sb.storage.from('blog-images').uploadToSignedUrl(init.path, init.token, file)
+    if (upErr) throw upErr
+
+    return init.publicUrl as string
+  }
+
+  function handleImageUpload(file: File) {
+    if (!file.type.startsWith('image/')) { setError('Only image files can be uploaded'); return }
+    if (file.size > 20 * 1024 * 1024) { setError('Image is too large (max 20MB)'); return }
+
+    // A unique placeholder so concurrent uploads (e.g. two quick pastes)
+    // each resolve to the right spot instead of colliding on filename.
+    const uploadId = Math.random().toString(36).slice(2, 8)
+    const placeholder = `![Uploading ${file.name}...](uploading-${uploadId})`
+
+    const el = contentRef.current
+    if (el) {
+      const { selectionStart: start, selectionEnd: end, value } = el
+      setForm(f => ({ ...f, content: value.slice(0, start) + placeholder + value.slice(end) }))
+    } else {
+      setForm(f => ({ ...f, content: f.content + placeholder }))
+    }
+
+    setImageUploading(true)
+    uploadImageFile(file)
+      .then(url => {
+        const altText = file.name.replace(/\.[^.]+$/, '')
+        setForm(f => ({ ...f, content: f.content.replace(placeholder, `![${altText}](${url})`) }))
+      })
+      .catch(err => {
+        setForm(f => ({ ...f, content: f.content.replace(placeholder, '') }))
+        setError(err instanceof Error ? err.message : 'Image upload failed')
+      })
+      .finally(() => setImageUploading(false))
+  }
+
+  function handleImageInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) handleImageUpload(file)
+    e.target.value = ''
+  }
+
+  function handleContentDragOver(e: React.DragEvent<HTMLTextAreaElement>) {
+    if (Array.from(e.dataTransfer.types).includes('Files')) e.preventDefault()
+  }
+
+  function handleContentDrop(e: React.DragEvent<HTMLTextAreaElement>) {
+    const file = Array.from(e.dataTransfer.files).find(f => f.type.startsWith('image/'))
+    if (file) { e.preventDefault(); handleImageUpload(file) }
+  }
+
+  function handleContentPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const item = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'))
+    const file = item?.getAsFile()
+    if (file) { e.preventDefault(); handleImageUpload(file) }
   }
 
   function insertCodeBlock() {
@@ -456,14 +523,18 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
                           <ToolbarButton onClick={() => prefixLines(line => `> ${line}`)} title="Blockquote"><Quote size={13} /></ToolbarButton>
                           <ToolbarDivider />
                           <ToolbarButton onClick={insertLink} title="Link"><Link2 size={13} /></ToolbarButton>
-                          <ToolbarButton onClick={insertImage} title="Image"><ImageIcon size={13} /></ToolbarButton>
+                          <ToolbarButton onClick={() => imageInputRef.current?.click()} title="Upload image" disabled={imageUploading}>
+                            {imageUploading ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
+                          </ToolbarButton>
+                          <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageInputChange} className="hidden" />
                           <ToolbarButton onClick={insertCodeBlock} title="Code block"><Terminal size={13} /></ToolbarButton>
                         </div>
                       )}
 
                       {contentView === 'write' ? (
                         <textarea ref={contentRef} value={form.content} onChange={(e) => setForm(f => ({ ...f, content: e.target.value }))}
-                          placeholder={'# My Post\n\nWrite in **Markdown**...'}
+                          onDragOver={handleContentDragOver} onDrop={handleContentDrop} onPaste={handleContentPaste}
+                          placeholder={'# My Post\n\nWrite in **Markdown**... (you can also paste or drag an image straight in)'}
                           className={`w-full px-10 py-10 rounded-2xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] mono text-[15px] placeholder:text-[var(--muted)] placeholder:opacity-40 focus:outline-none focus:border-[var(--accent)] transition-colors resize-y leading-[1.9] shadow-sm ${fullscreen ? 'min-h-[calc(100vh-140px)]' : 'min-h-[70vh]'}`} />
                       ) : (
                         <div className={`w-full px-10 py-10 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm overflow-y-auto ${fullscreen ? 'min-h-[calc(100vh-140px)]' : 'min-h-[70vh]'}`}>
