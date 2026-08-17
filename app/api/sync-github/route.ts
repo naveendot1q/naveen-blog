@@ -24,12 +24,14 @@ export async function GET(req: NextRequest) {
     created: [], updated: [], skipped: [], errors: [],
   }
 
-  let files
+  let allFiles
   try {
-    files = (await listRepoFiles()).filter(f => /\.mdx?$/i.test(f.path))
+    allFiles = await listRepoFiles()
   } catch (err) {
     return NextResponse.json({ error: `Could not list repo files: ${err instanceof Error ? err.message : String(err)}` }, { status: 500 })
   }
+  const allRepoPaths = allFiles.map(f => f.path)
+  const files = allFiles.filter(f => /\.mdx?$/i.test(f.path))
 
   for (const file of files) {
     try {
@@ -58,11 +60,12 @@ export async function GET(req: NextRequest) {
         continue
       }
 
-      // Re-host any repo-relative images to Supabase Storage
+      // Re-host any repo-relative images to Supabase Storage — handles
+      // both standard Markdown images and Obsidian's ![[..]] embeds
       const localRefs = findLocalImageRefs(parsed.body)
       const urlMap = new Map<string, string>()
       for (const ref of localRefs) {
-        const repoImgPath = resolveRepoPath(file.path, ref)
+        const repoImgPath = resolveRepoPath(file.path, ref.src, allRepoPaths)
         try {
           const { content: imgBuf } = await getFileContent(repoImgPath)
           const storagePath = `${parsed.slug}/${repoImgPath.split('/').pop()}`
@@ -72,12 +75,12 @@ export async function GET(req: NextRequest) {
           })
           if (upErr) throw upErr
           const { data: pub } = sb.storage.from('blog-images').getPublicUrl(storagePath)
-          urlMap.set(ref, pub.publicUrl)
+          urlMap.set(ref.src, pub.publicUrl)
         } catch (imgErr) {
-          results.errors.push(`image ${repoImgPath}: ${imgErr instanceof Error ? imgErr.message : String(imgErr)}`)
+          results.errors.push(`image ${repoImgPath} (referenced as "${ref.src}"): ${imgErr instanceof Error ? imgErr.message : String(imgErr)}`)
         }
       }
-      const finalBody = urlMap.size > 0 ? rewriteImageRefs(parsed.body, urlMap) : parsed.body
+      const finalBody = urlMap.size > 0 ? rewriteImageRefs(parsed.body, localRefs, urlMap) : parsed.body
 
       const basePayload = {
         title: parsed.title,

@@ -3,6 +3,7 @@
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
 import type { Components } from 'react-markdown'
 import { slugifyHeading } from '@/lib/slugifyHeading'
 
@@ -30,7 +31,12 @@ const mdComponents = {
 export default function MarkdownRenderer({ content }: { content: string }) {
   return (
     <div className="prose-custom">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        remarkRehypeOptions={{ allowDangerousHtml: true }}
+        rehypePlugins={[rehypeRaw]}
+        components={mdComponents}
+      >
         {content}
       </ReactMarkdown>
     </div>
