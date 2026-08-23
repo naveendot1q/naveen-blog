@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getFileContent, upsertFile } from '@/lib/github'
 import { serializePost } from '@/lib/post-frontmatter'
+import { errorMessage } from '@/lib/error-message'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,14 +54,15 @@ export async function POST(req: NextRequest) {
       sha
     )
 
-    await admin.from('blog_posts').update({
+    const { error: statusErr } = await admin.from('blog_posts').update({
       source_path: path,
       source_sha: newSha,
       synced_at: new Date().toISOString(),
     }).eq('id', postId)
+    if (statusErr) throw statusErr
 
     return NextResponse.json({ ok: true, path })
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Push to GitHub failed' }, { status: 500 })
+    return NextResponse.json({ error: errorMessage(err) }, { status: 500 })
   }
 }

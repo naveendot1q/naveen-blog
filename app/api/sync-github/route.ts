@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { listRepoFiles, getFileContent, getFileDates } from '@/lib/github'
 import { parsePostFile, findLocalImageRefs, resolveRepoPath, rewriteImageRefs } from '@/lib/post-frontmatter'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { errorMessage } from '@/lib/error-message'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60 // no-ops on plans that don't allow raising it — see setup notes
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
   try {
     allFiles = await listRepoFiles()
   } catch (err) {
-    return NextResponse.json({ error: `Could not list repo files: ${err instanceof Error ? err.message : String(err)}` }, { status: 500 })
+    return NextResponse.json({ error: `Could not list repo files: ${errorMessage(err)}` }, { status: 500 })
   }
   const allRepoPaths = allFiles.map(f => f.path)
   const files = allFiles.filter(f => /\.mdx?$/i.test(f.path))
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
 
       // Already in sync — nothing changed in the repo since last run
       if (existing && existing.source_sha === file.sha) {
-        results.skipped.push(file.path)
+        results.skipped.push(`${file.path} (already up to date)`)
         continue
       }
 
@@ -105,7 +106,7 @@ export async function GET(req: NextRequest) {
         results.created.push(file.path)
       }
     } catch (err) {
-      results.errors.push(`${file.path}: ${err instanceof Error ? err.message : String(err)}`)
+      results.errors.push(`${file.path}: ${errorMessage(err)}`)
     }
   }
 

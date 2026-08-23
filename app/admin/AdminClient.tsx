@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { errorMessage } from '@/lib/error-message'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import {
   Plus, Edit2, Trash2, Eye, EyeOff, LogOut,
@@ -141,7 +142,7 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
 
       setTimeout(() => { setMode('list'); resetForm(); router.refresh() }, 800)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setError(errorMessage(err))
     } finally { setLoading(false) }
   }
 
@@ -315,7 +316,7 @@ export default function AdminClient({ posts: initialPosts, readers: initialReade
       })
       .catch(err => {
         setForm(f => ({ ...f, content: f.content.replace(placeholder, '') }))
-        setError(err instanceof Error ? err.message : 'Image upload failed')
+        setError(errorMessage(err))
       })
       .finally(() => setImageUploading(false))
   }
