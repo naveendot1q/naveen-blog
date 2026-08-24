@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
 
   const force = req.nextUrl.searchParams.get('force') === 'true'
   const sb = createAdminClient()
-  const results: { created: string[]; updated: string[]; skipped: string[]; errors: string[] } = {
+  const results: { commit: string; created: string[]; updated: string[]; skipped: string[]; errors: string[] } = {
+    commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'unknown (not running on Vercel, or var unset)',
     created: [], updated: [], skipped: [], errors: [],
   }
 
