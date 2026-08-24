@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const force = req.nextUrl.searchParams.get('force') === 'true'
   const sb = createAdminClient()
   const results: { created: string[]; updated: string[]; skipped: string[]; errors: string[] } = {
     created: [], updated: [], skipped: [], errors: [],
@@ -42,8 +43,11 @@ export async function GET(req: NextRequest) {
         .eq('source_path', file.path)
         .maybeSingle()
 
-      // Already in sync — nothing changed in the repo since last run
-      if (existing && existing.source_sha === file.sha) {
+      // Already in sync — nothing changed in the repo since last run.
+      // force=true bypasses this specifically (e.g. after a parser fix,
+      // to reprocess content that hasn't changed on GitHub's side but
+      // needs to be re-parsed with the corrected logic).
+      if (!force && existing && existing.source_sha === file.sha) {
         results.skipped.push(`${file.path} (already up to date)`)
         continue
       }
