@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     try {
       const { data: existing } = await sb
         .from('blog_posts')
-        .select('id, source_sha, updated_at')
+        .select('id, source_sha, updated_at, synced_at')
         .eq('source_path', file.path)
         .maybeSingle()
 
@@ -57,12 +57,22 @@ export async function GET(req: NextRequest) {
       const parsed = parsePostFile(file.path, rawBuf.toString('utf-8'))
       const { createdAt, updatedAt } = await getFileDates(file.path)
 
-      // If the row was edited in the admin panel more recently than
-      // this file's last commit, don't let a stale repo version
-      // clobber it — the admin-panel save is responsible for pushing
-      // its own changes back to GitHub (see /api/push-to-github).
-      if (existing?.updated_at && new Date(existing.updated_at) > new Date(updatedAt)) {
-        results.skipped.push(`${file.path} (newer admin edit — left alone)`)
+      // If this row was modified meaningfully after the last time sync
+      // touched it, treat that as a possible not-yet-pushed admin edit
+      // and don't let a stale GitHub pull clobber it. This compares
+      // against our OWN synced_at, not GitHub's commit date — comparing
+      // against GitHub's date breaks permanently on any table where
+      // updated_at gets auto-touched to "now" on every write (a common
+      // Postgres/Supabase default), since that makes this check look
+      // tripped forever after the very first sync ever touches a row.
+      // The 10s buffer absorbs ordinary clock/latency noise between
+      // when synced_at is set here and when Postgres actually writes
+      // updated_at, so it only fires on a real, meaningful gap.
+      const editedSinceLastSync = existing?.updated_at && existing?.synced_at &&
+        new Date(existing.updated_at).getTime() - new Date(existing.synced_at).getTime() > 10_000
+
+      if (!force && editedSinceLastSync) {
+        results.skipped.push(`${file.path} (edited since last sync — left alone)`)
         continue
       }
 
