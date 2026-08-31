@@ -14,6 +14,18 @@ function contentTypeFor(path: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const startTime = Date.now()
+  // Conservative even for Hobby's hard 10s cap — leaves headroom for
+  // the initial repo-listing call and network jitter. On a full
+  // force=true resync of many files, this means it'll take several
+  // calls to get through everything: each call does as much as it
+  // safely can, then stops and reports what's left, rather than
+  // risking a mid-flight FUNCTION_INVOCATION_TIMEOUT that returns
+  // nothing at all. Files already processed are cheap to re-check
+  // (skipped immediately by the SHA/force logic below) so re-running
+  // this repeatedly is safe and just picks up where it left off.
+  const TIME_BUDGET_MS = 8_000
+
   const secret = process.env.CRON_SECRET
   const auth = req.headers.get('authorization')
   if (!secret || auth !== `Bearer ${secret}`) {
@@ -22,9 +34,11 @@ export async function GET(req: NextRequest) {
 
   const force = req.nextUrl.searchParams.get('force') === 'true'
   const sb = createAdminClient()
-  const results: { commit: string; force: boolean; created: string[]; updated: string[]; skipped: string[]; errors: string[] } = {
+  const results: { commit: string; force: boolean; incomplete: boolean; remaining: number; created: string[]; updated: string[]; skipped: string[]; errors: string[] } = {
     commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'unknown (not running on Vercel, or var unset)',
     force,
+    incomplete: false,
+    remaining: 0,
     created: [], updated: [], skipped: [], errors: [],
   }
 
@@ -37,7 +51,13 @@ export async function GET(req: NextRequest) {
   const allRepoPaths = allFiles.map(f => f.path)
   const files = allFiles.filter(f => /\.mdx?$/i.test(f.path))
 
-  for (const file of files) {
+  for (let i = 0; i < files.length; i++) {
+    if (Date.now() - startTime > TIME_BUDGET_MS) {
+      results.incomplete = true
+      results.remaining = files.length - i
+      break
+    }
+    const file = files[i]
     try {
       const { data: existing } = await sb
         .from('blog_posts')
