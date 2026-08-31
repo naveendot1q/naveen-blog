@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sanitizeFilename } from '@/lib/storage-path'
 
 export const dynamic = 'force-dynamic'
 
 // Sanity ceiling only — Storage/plan limits are the real cap. This just
 // stops something absurd from getting a signed URL in the first place.
 const MAX_BYTES = 20 * 1024 * 1024
-
-function sanitizeFilename(name: string) {
-  return name.toLowerCase().replace(/[^a-z0-9.\-]+/g, '-').replace(/-+/g, '-')
-}
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()

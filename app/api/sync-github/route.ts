@@ -3,6 +3,7 @@ import { listRepoFiles, getFileContent, getFileDates } from '@/lib/github'
 import { parsePostFile, findLocalImageRefs, resolveRepoPath, rewriteImageRefs } from '@/lib/post-frontmatter'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { errorMessage } from '@/lib/error-message'
+import { sanitizeFilename } from '@/lib/storage-path'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60 // no-ops on plans that don't allow raising it — see setup notes
@@ -105,7 +106,7 @@ export async function GET(req: NextRequest) {
         const repoImgPath = resolveRepoPath(file.path, ref.src, allRepoPaths)
         try {
           const { content: imgBuf } = await getFileContent(repoImgPath)
-          const storagePath = `${parsed.slug}/${repoImgPath.split('/').pop()}`
+          const storagePath = `${parsed.slug}/${sanitizeFilename(repoImgPath.split('/').pop() || 'image')}`
           const { error: upErr } = await sb.storage.from('blog-images').upload(storagePath, imgBuf, {
             contentType: contentTypeFor(repoImgPath),
             upsert: true,
