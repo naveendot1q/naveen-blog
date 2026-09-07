@@ -50,7 +50,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: `Could not list repo files: ${errorMessage(err)}` }, { status: 500 })
   }
   const allRepoPaths = allFiles.map(f => f.path)
-  const files = allFiles.filter(f => /\.mdx?$/i.test(f.path))
+  const mdFiles = allFiles.filter(f => /\.mdx?$/i.test(f.path))
+
+  const { data: existingRows } = await sb
+    .from('blog_posts')
+    .select('id, source_path, source_sha, updated_at, synced_at')
+    .in('source_path', mdFiles.map(f => f.path))
+
+  const existingByPath = new Map((existingRows || []).map(r => [r.source_path as string, r]))
+
+  // Never-synced files first, then oldest synced_at first — so a file
+  // this run just touched sorts to the back for the NEXT run instead
+  // of being picked again immediately.
+  const files = [...mdFiles].sort((a, b) => {
+    const aSynced = existingByPath.get(a.path)?.synced_at
+    const bSynced = existingByPath.get(b.path)?.synced_at
+    if (!aSynced && !bSynced) return 0
+    if (!aSynced) return -1
+    if (!bSynced) return 1
+    return new Date(aSynced).getTime() - new Date(bSynced).getTime()
+  })
 
   for (let i = 0; i < files.length; i++) {
     if (Date.now() - startTime > TIME_BUDGET_MS) {
@@ -60,11 +79,7 @@ export async function GET(req: NextRequest) {
     }
     const file = files[i]
     try {
-      const { data: existing } = await sb
-        .from('blog_posts')
-        .select('id, source_sha, updated_at, synced_at')
-        .eq('source_path', file.path)
-        .maybeSingle()
+      const existing = existingByPath.get(file.path)
 
       // Already in sync — nothing changed in the repo since last run.
       // force=true bypasses this specifically (e.g. after a parser fix,
